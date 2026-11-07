@@ -1,0 +1,1703 @@
+{
+  "name": "02-notes",
+  "nodes": [
+    {
+      "name": "Açıklama",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -320
+      ],
+      "parameters": {
+        "content": "## 02-notes — Ders notları ve özet (Zorunlu 2)\n`/notes/create` not kaydı (metin veya TXT içeriği), `/notes/list` dersin notları,\n`/notes/summarize` Ollama ile JSON şemalı özet (`format`), doğrulama + en fazla 3 deneme.\nÖzet nota kaydedilir; tekrar istenirse model çağrılmadan döner (`force: true` yeniden üretir).",
+        "width": 900,
+        "height": 200
+      },
+      "id": "37109e25-a9f1-425b-a861-223cb598d7c0"
+    },
+    {
+      "name": "500 Sunucu hatası",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2600,
+        1500
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'INTERNAL_ERROR', message: \"Sunucu hatası, lütfen tekrar deneyin.\", detail: ($json.error && ($json.error.message || $json.error.description)) || null } }) }}",
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "7fcf73fd-c938-4ca5-acab-11d9dbb50923"
+    },
+    {
+      "name": "POST /notes/create",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "47e40e3c-a63e-45a6-9e54-d7d5a6b55ce5",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "notes/create",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "970b3188-bbdd-4600-84b8-7831a0a4cfbe"
+    },
+    {
+      "name": "Not ekle: token özeti",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /notes/create').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "070b5b98-8ff1-4052-a655-67c57622b319"
+    },
+    {
+      "name": "Not ekle: oturum",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        0
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "sessions",
+        "query": "={{ JSON.stringify({ token_hash: $json.token_hash, expires_ms: { $gt: $json.now_ms } }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "c254b313-b97c-42c4-ae74-35ded5388bd8"
+    },
+    {
+      "name": "Not ekle: oturum geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "20b9089e-4ff1-4f20-9333-7d991be5ae16",
+              "leftValue": "={{ !!$json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "36e36ac8-388b-440c-8b63-e8614f0120c1"
+    },
+    {
+      "name": "Not ekle: 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        140
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Oturumunuz geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapın.' } }) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "3764719a-dcf5-4bd7-bd37-2f9207f48d67"
+    },
+    {
+      "name": "Not ekle: doğrula",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -60
+      ],
+      "parameters": {
+        "jsCode": "// Not ekleme isteğini doğrular ve not belgesini hazırlar.\nconst crypto = require('crypto');\nconst b = $('POST /notes/create').first().json.body || {};\nconst user_id = $('Not ekle: oturum').first().json.user_id;\nconst s = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst course_id = s(b.course_id);\nconst title = s(b.title).replace(/\\s+/g, ' ');\nconst content = s(b.content).replace(/\\r\\n/g, '\\n');\nconst source = s(b.source) || 'text';\nconst fail = (message) => [{ json: { valid: false, response: { ok: false, error: { code: 'VALIDATION_ERROR', message } } } }];\n\nif (!course_id) return fail('Ders seçilmelidir.');\nif (!title || title.length > 200) return fail('Not başlığı 1-200 karakter arasında olmalıdır.');\nif (content.length < 20 || content.length > 15000) return fail('Not metni 20-15000 karakter arasında olmalıdır.');\nif (!['text', 'txt', 'pdf'].includes(source)) return fail(\"Kaynak 'text', 'txt' veya 'pdf' olmalıdır.\");\n\nconst note = { id: crypto.randomUUID(), user_id, course_id, title, content, source, created_at: new Date().toISOString() };\nreturn [{ json: { valid: true, note, response: { ok: true, data: { note: { id: note.id, title, created_at: note.created_at } } } } }];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "69fa3d97-9398-49b5-97bd-b2c85bc3f51d"
+    },
+    {
+      "name": "Not ekle: alanlar geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        -60
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "b69293a8-7cf6-4c1e-a72b-ba3a9ce6384c",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4ec33279-eb08-4101-b0d1-8dae171b4685"
+    },
+    {
+      "name": "400 Geçersiz not",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        100
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "4269281c-7627-4d7d-b4b1-c2da820166f3"
+    },
+    {
+      "name": "Not ekle: ders",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        -140
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "courses",
+        "query": "={{ JSON.stringify({ id: $json.note.course_id, user_id: $json.note.user_id }) }}",
+        "options": {
+          "limit": 1,
+          "projection": "{\"id\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "4ba43661-45c8-40d5-b1ba-1d7539b06aa6"
+    },
+    {
+      "name": "Not ekle: ders var mı?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        -140
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "bc30eda6-932a-4928-9859-8f6f5def863a",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3075a121-cdde-4071-884e-20690ef429c8"
+    },
+    {
+      "name": "404 Ders yok",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        0
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "{\"ok\": false, \"error\": {\"code\": \"NOT_FOUND\", \"message\": \"Ders bulunamadı.\"}}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a4c77631-668a-492a-8f49-2695a69bb300"
+    },
+    {
+      "name": "Not ekle: belge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        -220
+      ],
+      "parameters": {
+        "jsCode": "// Eklenecek not belgesi (doğrulama düğümünden)\nreturn [{ json: $('Not ekle: doğrula').first().json.note }];\n"
+      },
+      "id": "5ed42e42-b358-44ad-8e76-0544d162ca42"
+    },
+    {
+      "name": "Not ekle: kaydet",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1980,
+        -220
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "insert",
+        "collection": "notes",
+        "fields": "id,user_id,course_id,title,content,source,created_at",
+        "options": {
+          "dateFields": "created_at"
+        }
+      },
+      "id": "9b47f3a3-930a-43ef-a673-ac5bfdfb90f0"
+    },
+    {
+      "name": "201 Not eklendi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        -220
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($('Not ekle: doğrula').first().json.response) }}",
+        "options": {
+          "responseCode": 201,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a900f49f-9b26-4e84-af88-f2201761f074"
+    },
+    {
+      "name": "POST /notes/list",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        480
+      ],
+      "webhookId": "136c4851-876c-4547-a06a-59a933012b60",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "notes/list",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "4916c893-6220-4abd-8a3a-23274b284ea3"
+    },
+    {
+      "name": "Notlar: token özeti",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        480
+      ],
+      "parameters": {
+        "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /notes/list').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "cbaa0774-31c4-42bb-82e4-258aa6802cbf"
+    },
+    {
+      "name": "Notlar: oturum",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        480
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "sessions",
+        "query": "={{ JSON.stringify({ token_hash: $json.token_hash, expires_ms: { $gt: $json.now_ms } }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "0257a1b4-ab9c-4bcb-9952-a5e1ddf1b92e"
+    },
+    {
+      "name": "Notlar: oturum geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        480
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "7d2e3115-182a-4685-8960-afb35f78607f",
+              "leftValue": "={{ !!$json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4a810b74-204d-4dd3-a597-b7716dce75a1"
+    },
+    {
+      "name": "Notlar: 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        620
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Oturumunuz geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapın.' } }) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "2bdd0d5d-bd5e-482f-b02f-706e6e1e3986"
+    },
+    {
+      "name": "Notlar: ders",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        420
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "courses",
+        "query": "={{ JSON.stringify({ id: String($('POST /notes/list').first().json.body.course_id ?? '-') || '-', user_id: $('Notlar: oturum').first().json.user_id }) }}",
+        "options": {
+          "limit": 1,
+          "projection": "{\"id\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "10d9daf7-da04-4ba0-8cc7-9c8b1598a20c"
+    },
+    {
+      "name": "Notlar: ders var mı?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        420
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "e39e005b-03db-4f94-bc2f-260e4193aff6",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8b071012-dd77-407e-8d52-189980275474"
+    },
+    {
+      "name": "404 Notlar: ders yok",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        560
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "{\"ok\": false, \"error\": {\"code\": \"NOT_FOUND\", \"message\": \"Ders bulunamadı.\"}}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "7f9c5f15-98ee-4730-a8b9-7b7923609f3f"
+    },
+    {
+      "name": "Notlar: notlar",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        360
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "notes",
+        "query": "={{ JSON.stringify({ course_id: $json.id, user_id: $('Notlar: oturum').first().json.user_id }) }}",
+        "options": {
+          "limit": 200,
+          "sort": "{\"created_at\": -1}",
+          "projection": "{\"id\": 1, \"title\": 1, \"content\": 1, \"summary\": 1, \"source\": 1, \"created_at\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "9d1b062f-885c-4ce8-afa3-4a6ab36d904d"
+    },
+    {
+      "name": "Notlar: birleştir",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        360
+      ],
+      "parameters": {
+        "jsCode": "// Dersin notlarını önizleme ve özet durumu ile döndürür (en yeni önce).\nconst iso = (v) => (v ? new Date(v).toISOString() : null);\nconst notes = $input.all().map((i) => i.json).filter((d) => d && d.id)\n  .map((n) => ({\n    id: n.id,\n    title: n.title,\n    preview: String(n.content || '').replace(/\\s+/g, ' ').slice(0, 160),\n    has_summary: !!(n.summary && n.summary.short),\n    source: n.source || 'text',\n    created_at: iso(n.created_at),\n  }))\n  .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));\nreturn [{ json: { response: { ok: true, data: { notes } } } }];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "5bb9e1eb-2be5-4ed8-945e-1e2e8e83cdd3"
+    },
+    {
+      "name": "200 Not listesi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        360
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "e60f6d3a-49fc-4e3d-80ef-dea28827d274"
+    },
+    {
+      "name": "POST /notes/summarize",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        960
+      ],
+      "webhookId": "121e0d19-2bb0-4d1d-a07c-eb80da1563a2",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "notes/summarize",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b8f385e8-79b6-4ce5-a6f5-639943722edb"
+    },
+    {
+      "name": "Özet: token özeti",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        960
+      ],
+      "parameters": {
+        "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /notes/summarize').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "5490ab8a-68a9-4923-8e7e-a8266c01b810"
+    },
+    {
+      "name": "Özet: oturum",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        960
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "sessions",
+        "query": "={{ JSON.stringify({ token_hash: $json.token_hash, expires_ms: { $gt: $json.now_ms } }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "4df9d040-c835-4ebf-9a16-32fbb3710715"
+    },
+    {
+      "name": "Özet: oturum geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        960
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c363429c-6e2c-47bb-927c-87de3d7729ad",
+              "leftValue": "={{ !!$json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8e783023-1d4b-4379-ae90-49a241e37602"
+    },
+    {
+      "name": "Özet: 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        1100
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Oturumunuz geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapın.' } }) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "405fbf00-a167-4a06-aa07-2fe1fd2fb783"
+    },
+    {
+      "name": "Özet: istek",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        900
+      ],
+      "parameters": {
+        "jsCode": "// Özet isteğini okur.\nconst b = $('POST /notes/summarize').first().json.body || {};\nconst s = (v) => (v === null || v === undefined ? '' : String(v).trim());\nreturn [{\n  json: {\n    user_id: $('Özet: oturum').first().json.user_id,\n    note_id: s(b.note_id) || '-',\n    force: b.force === true || b.force === 'true',\n    model: s(b.model) || null,\n  },\n}];\n"
+      },
+      "id": "c7ad64a6-cc70-4bfd-8926-a9a1b6e4d072"
+    },
+    {
+      "name": "Özet: not",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        900
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "notes",
+        "query": "={{ JSON.stringify({ id: $json.note_id, user_id: $json.user_id }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "1b726d96-4bd5-4bc5-8854-bb2ebad0618b"
+    },
+    {
+      "name": "Özet: not var mı?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        900
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "02b1b02c-9067-450e-bcc5-832505126baa",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "74a52a8b-d9c2-475b-bb0c-1ab7eec7082d"
+    },
+    {
+      "name": "404 Not yok",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        1060
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "{\"ok\": false, \"error\": {\"code\": \"NOT_FOUND\", \"message\": \"Not bulunamadı.\"}}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "b5c6ad71-1e88-4b6a-bd6f-77f4ff84395a"
+    },
+    {
+      "name": "Özet: kayıtlı özet kullanılsın mı?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        860
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "d50e0d4b-c6f4-4ca8-b0cc-de005c42b3c7",
+              "leftValue": "={{ !$('Özet: istek').first().json.force && !!($json.summary && $json.summary.short) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "55e3e494-e8fd-448d-b7ec-9105cf068d2e"
+    },
+    {
+      "name": "200 Kayıtlı özet",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        760
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: true, data: { note_id: $json.id, summary: $json.summary, model: $json.summary_model || null, cached: true } }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "7107a45f-13b4-443a-9a1b-b7bb26b65c2b"
+    },
+    {
+      "name": "Özet: prompt hazırla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        940
+      ],
+      "parameters": {
+        "jsCode": "// Özet için Ollama isteğini hazırlar. \"format\" ile JSON şeması zorlanır.\nconst n = $('Özet: not').first().json;\nconst r = $('Özet: istek').first().json;\nconst schema = {\n  type: 'object',\n  properties: {\n    short: { type: 'string' },\n    key_points: { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 7 },\n    keywords: { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 8 },\n  },\n  required: ['short', 'key_points', 'keywords'],\n};\nconst system = [\n  'Sen üniversite öğrencileri için ders notlarını özetleyen bir asistansın.',\n  'KURALLAR:',\n  '1. YALNIZCA Türkçe yaz. Çince, Japonca, Korece veya Kiril alfabesinden tek bir karakter bile kullanma.',\n  '2. Yalnızca nottaki bilgileri kullan; notta olmayan bilgi ekleme.',\n  '3. \"short\": notun 2-3 cümlelik özeti.',\n  '4. \"key_points\": notun en önemli 3-7 maddesi; her madde kısa tek bir cümle.',\n  '5. \"keywords\": notun 3-8 anahtar kavramı (tek kelime veya kısa ifade).',\n  '6. Yanıtın yalnızca istenen JSON nesnesi olsun.',\n].join('\\n');\nreturn [{\n  json: {\n    body: {\n      model: r.model, // null ise .env içindeki LLM_MODEL\n      stream: false,\n      format: schema,\n      options: { temperature: 0.2, num_ctx: 8192 },\n      messages: [\n        { role: 'system', content: system },\n        { role: 'user', content: `Ders notu başlığı: ${n.title}\\n\\nDers notu:\\n${n.content}` },\n      ],\n    },\n  },\n}];\n"
+      },
+      "id": "7e25f154-c66b-47c0-a114-9c6ed22aac9b"
+    },
+    {
+      "name": "Özet: kayıt belgesi",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        860
+      ],
+      "parameters": {
+        "jsCode": "// Özeti nota kaydetmek için güncelleme belgesini ve istemci yanıtını hazırlar.\nconst n = $('Özet: not').first().json;\nconst v = $input.first().json;\nconst now = new Date().toISOString();\nreturn [{\n  json: {\n    id: n.id,\n    summary: v.summary,\n    summary_model: v.model,\n    summarized_at: now,\n    response: { ok: true, data: { note_id: n.id, summary: v.summary, model: v.model, cached: false } },\n  },\n}];\n"
+      },
+      "id": "6ffbdd1c-2fc3-46d9-9c89-5e5deb5ac319"
+    },
+    {
+      "name": "Özet: Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        940
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OLLAMA_URL }}/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify(Object.assign({}, $('Özet: prompt hazırla').first().json.body, { model: $('Özet: prompt hazırla').first().json.body.model || $env.LLM_MODEL })) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "5b34332b-3276-4200-95aa-fa07b2b1ba6f"
+    },
+    {
+      "name": "Özet: yanıtı doğrula",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        940
+      ],
+      "parameters": {
+        "jsCode": "// Model özetini doğrular. Kurallardan biri bozulursa yeniden denenir ($runIndex: deneme sırası).\nconst r = $input.first().json;\nconst raw = (r.message && typeof r.message.content === 'string') ? r.message.content : '';\nconst FOREIGN = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯Ѐ-ӿ]/;\nconst clean = (v) => String(v ?? '').trim();\nconst list = (a, max) => (Array.isArray(a) ? [...new Set(a.map(clean).filter(Boolean))].slice(0, max) : []);\n\nlet problem = null;\nlet summary = null;\ntry {\n  const j = JSON.parse(raw.trim().replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/, ''));\n  summary = { short: clean(j.short), key_points: list(j.key_points, 7), keywords: list(j.keywords, 8) };\n  if (!summary.short) problem = 'özet boş';\n  else if (summary.key_points.length < 3) problem = 'en az 3 ana madde gerekli';\n  else if (summary.keywords.length < 3) problem = 'en az 3 anahtar kavram gerekli';\n  else if (FOREIGN.test(JSON.stringify(summary))) problem = 'Türkçe dışı karakter';\n} catch (e) {\n  problem = 'geçersiz JSON';\n}\nreturn [{ json: { valid: problem === null, problem, attempt: $runIndex + 1, summary, model: r.model || null } }];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "7c9dab4d-79a5-47f1-9ae9-044352be58ff"
+    },
+    {
+      "name": "Özet: yanıt geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        940
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "e03af327-9853-4ac3-9198-a4d8f7253d75",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e54aa50c-094e-4bb1-b082-e44cba6d8491"
+    },
+    {
+      "name": "Özet: tekrar denensin mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        1100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "22be0ed6-e5bd-4832-a879-94e63f447589",
+              "leftValue": "={{ $json.attempt }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5d756e19-8da6-45ad-bd73-a44de2ee5861"
+    },
+    {
+      "name": "Özet: 503",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        1140
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'AI_UNAVAILABLE', message: \"Yapay zekâ servisine ulaşılamadı veya model bulunamadı. Lütfen biraz sonra tekrar deneyin.\", detail: ($json.error && ($json.error.message || $json.error.description)) || null } }) }}",
+        "options": {
+          "responseCode": 503,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "02f03425-7719-44ba-97a5-86379e77c7c1"
+    },
+    {
+      "name": "Özet: 502",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2860,
+        1180
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'AI_BAD_OUTPUT', message: \"Yapay zekâ 3 denemede de geçerli bir özet üretemedi. Lütfen tekrar deneyin.\", detail: $json.problem } }) }}",
+        "options": {
+          "responseCode": 502,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "d61b59c2-fde8-4a9b-99a5-f93de404ebef"
+    },
+    {
+      "name": "Özet: nota kaydet",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        3100,
+        860
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "update",
+        "collection": "notes",
+        "updateKey": "id",
+        "fields": "id,summary,summary_model,summarized_at",
+        "options": {
+          "dateFields": "summarized_at"
+        }
+      },
+      "executeOnce": true,
+      "id": "36df88f6-53c3-4f3f-98c2-f57fd62b3bfc"
+    },
+    {
+      "name": "200 Özet",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3320,
+        860
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($('Özet: kayıt belgesi').first().json.response) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "24b06adc-3c86-4bd2-b008-e146b5e82332"
+    }
+  ],
+  "connections": {
+    "POST /notes/create": {
+      "main": [
+        [
+          {
+            "node": "Not ekle: token özeti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not ekle: token özeti": {
+      "main": [
+        [
+          {
+            "node": "Not ekle: oturum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not ekle: oturum": {
+      "main": [
+        [
+          {
+            "node": "Not ekle: oturum geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not ekle: oturum geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Not ekle: doğrula",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Not ekle: 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not ekle: doğrula": {
+      "main": [
+        [
+          {
+            "node": "Not ekle: alanlar geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not ekle: alanlar geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Not ekle: ders",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "400 Geçersiz not",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not ekle: ders": {
+      "main": [
+        [
+          {
+            "node": "Not ekle: ders var mı?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not ekle: ders var mı?": {
+      "main": [
+        [
+          {
+            "node": "Not ekle: belge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "404 Ders yok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not ekle: belge": {
+      "main": [
+        [
+          {
+            "node": "Not ekle: kaydet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not ekle: kaydet": {
+      "main": [
+        [
+          {
+            "node": "201 Not eklendi",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /notes/list": {
+      "main": [
+        [
+          {
+            "node": "Notlar: token özeti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notlar: token özeti": {
+      "main": [
+        [
+          {
+            "node": "Notlar: oturum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notlar: oturum": {
+      "main": [
+        [
+          {
+            "node": "Notlar: oturum geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notlar: oturum geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Notlar: ders",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notlar: 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notlar: ders": {
+      "main": [
+        [
+          {
+            "node": "Notlar: ders var mı?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notlar: ders var mı?": {
+      "main": [
+        [
+          {
+            "node": "Notlar: notlar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "404 Notlar: ders yok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notlar: notlar": {
+      "main": [
+        [
+          {
+            "node": "Notlar: birleştir",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notlar: birleştir": {
+      "main": [
+        [
+          {
+            "node": "200 Not listesi",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /notes/summarize": {
+      "main": [
+        [
+          {
+            "node": "Özet: token özeti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: token özeti": {
+      "main": [
+        [
+          {
+            "node": "Özet: oturum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: oturum": {
+      "main": [
+        [
+          {
+            "node": "Özet: oturum geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: oturum geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Özet: istek",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Özet: 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: istek": {
+      "main": [
+        [
+          {
+            "node": "Özet: not",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: not": {
+      "main": [
+        [
+          {
+            "node": "Özet: not var mı?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: not var mı?": {
+      "main": [
+        [
+          {
+            "node": "Özet: kayıtlı özet kullanılsın mı?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "404 Not yok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: kayıtlı özet kullanılsın mı?": {
+      "main": [
+        [
+          {
+            "node": "200 Kayıtlı özet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Özet: prompt hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: prompt hazırla": {
+      "main": [
+        [
+          {
+            "node": "Özet: Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: Ollama": {
+      "main": [
+        [
+          {
+            "node": "Özet: yanıtı doğrula",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Özet: 503",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: yanıtı doğrula": {
+      "main": [
+        [
+          {
+            "node": "Özet: yanıt geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Özet: 503",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: yanıt geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Özet: kayıt belgesi",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Özet: tekrar denensin mi?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: tekrar denensin mi?": {
+      "main": [
+        [
+          {
+            "node": "Özet: Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Özet: 502",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: kayıt belgesi": {
+      "main": [
+        [
+          {
+            "node": "Özet: nota kaydet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet: nota kaydet": {
+      "main": [
+        [
+          {
+            "node": "200 Özet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

@@ -1,0 +1,852 @@
+{
+  "name": "00-auth",
+  "nodes": [
+    {
+      "name": "Açıklama",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -300
+      ],
+      "parameters": {
+        "content": "## 00-auth — Kimlik doğrulama (MongoDB)\nŞifreler scrypt ile özetlenir (`scrypt$tuz$özet`). Oturum anahtarının yalnızca SHA-256 özeti `sessions` koleksiyonunda saklanır; TTL indeksi süresi dolanları siler.\nYanıt: `{ok:true,data}` veya `{ok:false,error:{code,message}}`",
+        "width": 900,
+        "height": 180
+      },
+      "id": "0dc02f99-41b1-490e-84f8-ba52818948cf"
+    },
+    {
+      "name": "500 Sunucu hatası",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1900,
+        1000
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'INTERNAL_ERROR', message: \"Sunucu hatası, lütfen tekrar deneyin.\", detail: ($json.error && ($json.error.message || $json.error.description)) || null } }) }}",
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "5025d508-531a-43df-80be-5eb15781c52c"
+    },
+    {
+      "name": "POST /auth/register",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "d983df79-9c31-4203-9625-9b02b7763572",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth/register",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "5e438670-5ffe-4a5f-a083-0c8e5a831700"
+    },
+    {
+      "name": "Kayıt: doğrula",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Kayıt isteğini doğrular ve kullanıcı belgesini hazırlar (şifre scrypt ile özetlenir).\nconst crypto = require('crypto');\nconst b = $('POST /auth/register').first().json.body || {};\nconst name = String(b.name ?? '').trim().replace(/\\s+/g, ' ');\nconst email = String(b.email ?? '').trim().toLowerCase();\nconst password = String(b.password ?? '');\nconst fail = (message) => [{ json: { valid: false, response: { ok: false, error: { code: 'VALIDATION_ERROR', message } } } }];\n\nif (!name || name.length > 100) return fail('Ad 1-100 karakter arasında olmalıdır.');\nif (!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) return fail('Geçerli bir e-posta adresi girin.');\nif (password.length < 6 || password.length > 72) return fail('Şifre en az 6, en fazla 72 karakter olmalıdır.');\n\nconst salt = crypto.randomBytes(16).toString('hex');\nconst hash = crypto.scryptSync(password, salt, 64).toString('hex');\nreturn [{\n  json: {\n    valid: true,\n    user: {\n      id: crypto.randomUUID(),\n      name,\n      email,\n      password_hash: `scrypt$${salt}$${hash}`,\n      created_at: new Date().toISOString(),\n    },\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "b9407b46-6ab2-4ab8-b9e3-1fbb55357df3"
+    },
+    {
+      "name": "Kayıt: alanlar geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "4783622f-dbe2-424a-8c62-499e3e5cc255",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "00be51be-ccf0-4474-bd5e-7aec3fee885f"
+    },
+    {
+      "name": "400 Geçersiz alan",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        160
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "2c57c03e-acc0-43ca-83d1-365f43f3399f"
+    },
+    {
+      "name": "Kayıt: e-posta ara",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        -40
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "users",
+        "query": "={{ JSON.stringify({ email: $json.user.email }) }}",
+        "options": {
+          "limit": 1,
+          "projection": "{\"id\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "747ded7e-f3be-4d5c-9ee5-c7a894f0baf2"
+    },
+    {
+      "name": "Kayıt: e-posta kayıtlı mı?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -40
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "86fb92d5-b177-4962-809f-c09365a5b32f",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c56c5951-cca2-40e8-9905-8e11e691e387"
+    },
+    {
+      "name": "409 E-posta kayıtlı",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        100
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "{\"ok\": false, \"error\": {\"code\": \"EMAIL_TAKEN\", \"message\": \"Bu e-posta adresi zaten kayıtlı.\"}}",
+        "options": {
+          "responseCode": 409,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "b43be54b-92cc-4018-b077-2dc49a064441"
+    },
+    {
+      "name": "Kayıt: belge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        -120
+      ],
+      "parameters": {
+        "jsCode": "// Eklenecek kullanıcı belgesi (doğrulama düğümünden)\nreturn [{ json: $('Kayıt: doğrula').first().json.user }];\n"
+      },
+      "id": "257967ca-afe9-45cb-9db6-8f0d78bd98a1"
+    },
+    {
+      "name": "Kayıt: kullanıcı ekle",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        -120
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "insert",
+        "collection": "users",
+        "fields": "id,name,email,password_hash,created_at",
+        "options": {
+          "dateFields": "created_at"
+        }
+      },
+      "id": "6102bf72-8c36-40e5-bafd-bbf30acd6dc3"
+    },
+    {
+      "name": "Kayıt: oturum",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        -120
+      ],
+      "parameters": {
+        "jsCode": "// Yeni kullanıcı için oturum anahtarı üretir. Veritabanına yalnızca SHA-256 özeti yazılır.\nconst crypto = require('crypto');\nconst u = $('Kayıt: doğrula').first().json.user;\nconst token = crypto.randomBytes(32).toString('hex');\nconst now = Date.now();\nconst expires = now + 30 * 24 * 3600 * 1000; // 30 gün\nreturn [{\n  json: {\n    token_hash: crypto.createHash('sha256').update(token).digest('hex'),\n    user_id: u.id,\n    created_at: new Date(now).toISOString(),\n    expires_at: new Date(expires).toISOString(),\n    expires_ms: expires,\n    response: { ok: true, data: { token, user: { id: u.id, name: u.name, email: u.email } } },\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "21083a83-37bf-40f6-a05b-3a9002cfc0b7"
+    },
+    {
+      "name": "Kayıt: oturum ekle",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        -120
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "insert",
+        "collection": "sessions",
+        "fields": "token_hash,user_id,created_at,expires_at,expires_ms",
+        "options": {
+          "dateFields": "created_at,expires_at"
+        }
+      },
+      "id": "e6af6a88-fbf2-4012-ae2d-7dcafc154943"
+    },
+    {
+      "name": "201 Kayıt OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        -120
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($('Kayıt: oturum').first().json.response) }}",
+        "options": {
+          "responseCode": 201,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "7cfea91d-6762-467b-b1e3-da6cabe09a46"
+    },
+    {
+      "name": "POST /auth/login",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        480
+      ],
+      "webhookId": "66d7df99-5702-47b0-b73d-e1d0985a5a50",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth/login",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6bd8a4e9-a7dd-452f-8d09-30382d1685a4"
+    },
+    {
+      "name": "Giriş: kullanıcı ara",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        480
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "users",
+        "query": "={{ JSON.stringify({ email: String($json.body.email ?? '').trim().toLowerCase() }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "a23986be-7815-4f55-be6a-25d541904cb9"
+    },
+    {
+      "name": "Giriş: şifre kontrol",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        480
+      ],
+      "parameters": {
+        "jsCode": "// Şifreyi kayıtlı scrypt özetiyle karşılaştırır; doğruysa oturum anahtarı üretir.\nconst crypto = require('crypto');\nconst b = $('POST /auth/login').first().json.body || {};\nconst u = $input.first().json || {};\nconst password = String(b.password ?? '');\n\nlet ok = false;\nif (u.id && typeof u.password_hash === 'string') {\n  const [alg, salt, hash] = u.password_hash.split('$');\n  if (alg === 'scrypt' && salt && hash) {\n    const calc = crypto.scryptSync(password, salt, 64);\n    const expected = Buffer.from(hash, 'hex');\n    ok = expected.length === calc.length && crypto.timingSafeEqual(calc, expected);\n  }\n}\nif (!ok) {\n  return [{ json: { valid: false, response: { ok: false, error: { code: 'INVALID_CREDENTIALS', message: 'E-posta veya şifre hatalı.' } } } }];\n}\n\nconst token = crypto.randomBytes(32).toString('hex');\nconst now = Date.now();\nconst expires = now + 30 * 24 * 3600 * 1000; // 30 gün\nreturn [{\n  json: {\n    valid: true,\n    token_hash: crypto.createHash('sha256').update(token).digest('hex'),\n    user_id: u.id,\n    created_at: new Date(now).toISOString(),\n    expires_at: new Date(expires).toISOString(),\n    expires_ms: expires,\n    response: { ok: true, data: { token, user: { id: u.id, name: u.name, email: u.email } } },\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "d84e0cda-a5f5-4b77-8b94-4f5835be2574"
+    },
+    {
+      "name": "Giriş: şifre doğru mu?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        480
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "46e6ea87-3f61-42da-addd-db1ad09df886",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2bd14c6a-ed9b-4081-8daf-733f06d32024"
+    },
+    {
+      "name": "401 Hatalı bilgi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        620
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "55f1ba4a-f65a-492f-8c56-648802f3f544"
+    },
+    {
+      "name": "Giriş: oturum ekle",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        420
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "insert",
+        "collection": "sessions",
+        "fields": "token_hash,user_id,created_at,expires_at,expires_ms",
+        "options": {
+          "dateFields": "created_at,expires_at"
+        }
+      },
+      "id": "1ca00969-5a62-4b3a-b049-0719f46e252e"
+    },
+    {
+      "name": "200 Giriş OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        420
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($('Giriş: şifre kontrol').first().json.response) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "b5961223-802a-4ffd-93e5-b3f57e6227ec"
+    },
+    {
+      "name": "POST /auth/logout",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        840
+      ],
+      "webhookId": "f8b73673-4628-4a96-bffe-0134459f4601",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth/logout",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ac5ab21e-8eb7-4732-b2c6-5ec2cec517d5"
+    },
+    {
+      "name": "Çıkış: token özeti",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        840
+      ],
+      "parameters": {
+        "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /auth/logout').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "fb94b67d-8c0f-4ef3-af32-60b8d0fee530"
+    },
+    {
+      "name": "Çıkış: oturumu sil",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        840
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "delete",
+        "collection": "sessions",
+        "query": "={{ JSON.stringify({ token_hash: $json.token_hash }) }}"
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "009e9d3c-0cb4-4442-b71f-5eb2d7bb5e77"
+    },
+    {
+      "name": "200 Çıkış OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        840
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "{\"ok\": true, \"data\": {}}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ad7e7251-4042-4919-bc40-3b76570bd0c5"
+    }
+  ],
+  "connections": {
+    "POST /auth/register": {
+      "main": [
+        [
+          {
+            "node": "Kayıt: doğrula",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kayıt: doğrula": {
+      "main": [
+        [
+          {
+            "node": "Kayıt: alanlar geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kayıt: alanlar geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Kayıt: e-posta ara",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "400 Geçersiz alan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kayıt: e-posta ara": {
+      "main": [
+        [
+          {
+            "node": "Kayıt: e-posta kayıtlı mı?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kayıt: e-posta kayıtlı mı?": {
+      "main": [
+        [
+          {
+            "node": "409 E-posta kayıtlı",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kayıt: belge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kayıt: belge": {
+      "main": [
+        [
+          {
+            "node": "Kayıt: kullanıcı ekle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kayıt: kullanıcı ekle": {
+      "main": [
+        [
+          {
+            "node": "Kayıt: oturum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kayıt: oturum": {
+      "main": [
+        [
+          {
+            "node": "Kayıt: oturum ekle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kayıt: oturum ekle": {
+      "main": [
+        [
+          {
+            "node": "201 Kayıt OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /auth/login": {
+      "main": [
+        [
+          {
+            "node": "Giriş: kullanıcı ara",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Giriş: kullanıcı ara": {
+      "main": [
+        [
+          {
+            "node": "Giriş: şifre kontrol",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Giriş: şifre kontrol": {
+      "main": [
+        [
+          {
+            "node": "Giriş: şifre doğru mu?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Giriş: şifre doğru mu?": {
+      "main": [
+        [
+          {
+            "node": "Giriş: oturum ekle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "401 Hatalı bilgi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Giriş: oturum ekle": {
+      "main": [
+        [
+          {
+            "node": "200 Giriş OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /auth/logout": {
+      "main": [
+        [
+          {
+            "node": "Çıkış: token özeti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Çıkış: token özeti": {
+      "main": [
+        [
+          {
+            "node": "Çıkış: oturumu sil",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Çıkış: oturumu sil": {
+      "main": [
+        [
+          {
+            "node": "200 Çıkış OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

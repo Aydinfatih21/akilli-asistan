@@ -1,0 +1,928 @@
+{
+  "name": "10-courses",
+  "nodes": [
+    {
+      "name": "Açıklama",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -300
+      ],
+      "parameters": {
+        "content": "## 10-courses — Dersler (MongoDB)\n`/courses/list`: dersler + not sayısı + test ortalaması, `/courses/create`: ders ekleme.\nTüm istekler `Authorization: Bearer <token>` ister.",
+        "width": 800,
+        "height": 160
+      },
+      "id": "2f9c221a-01dd-4d6a-acb3-8b6be3ba83c0"
+    },
+    {
+      "name": "500 Sunucu hatası",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2000,
+        900
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'INTERNAL_ERROR', message: \"Sunucu hatası, lütfen tekrar deneyin.\", detail: ($json.error && ($json.error.message || $json.error.description)) || null } }) }}",
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ba99365c-8809-462c-b4f6-362d6e861a24"
+    },
+    {
+      "name": "POST /courses/list",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "f1ea4f9d-75d2-42e9-b6ff-0394cd168ae6",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "courses/list",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a7d01e84-2be2-4174-b46b-48d894596a8a"
+    },
+    {
+      "name": "Liste: token özeti",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /courses/list').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "e484f0ec-67fb-43d5-9ede-5a6ca1442a38"
+    },
+    {
+      "name": "Liste: oturum",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        0
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "sessions",
+        "query": "={{ JSON.stringify({ token_hash: $json.token_hash, expires_ms: { $gt: $json.now_ms } }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "691a906f-ea73-4570-a4dc-5c6cf68ed549"
+    },
+    {
+      "name": "Liste: oturum geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "34914271-b91a-4a5d-864c-39d44a2e08c6",
+              "leftValue": "={{ !!$json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "03670c92-67ae-416c-8f61-8cd20fc8040b"
+    },
+    {
+      "name": "Liste: 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        140
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Oturumunuz geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapın.' } }) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "04b3c344-bd75-449a-ba41-5036c4774984"
+    },
+    {
+      "name": "Liste: dersler",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        -60
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "courses",
+        "query": "={{ JSON.stringify({ user_id: $('Liste: oturum').first().json.user_id }) }}",
+        "options": {
+          "sort": "{\"name\": 1}",
+          "projection": "{\"id\": 1, \"name\": 1, \"created_at\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "2c1ac1b5-15f7-416b-a55e-70c22648c70f"
+    },
+    {
+      "name": "Liste: notlar",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        -60
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "notes",
+        "query": "={{ JSON.stringify({ user_id: $('Liste: oturum').first().json.user_id }) }}",
+        "options": {
+          "projection": "{\"id\": 1, \"course_id\": 1, \"created_at\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "01055e9a-bb0b-4f57-b0ca-2c0757be9832"
+    },
+    {
+      "name": "Liste: denemeler",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        -60
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "quiz_attempts",
+        "query": "={{ JSON.stringify({ user_id: $('Liste: oturum').first().json.user_id }) }}",
+        "options": {
+          "projection": "{\"id\": 1, \"course_id\": 1, \"percent\": 1, \"created_at\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "867ace65-906f-47c5-ad52-feee778f8807"
+    },
+    {
+      "name": "Liste: birleştir",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        -60
+      ],
+      "parameters": {
+        "jsCode": "// Ders listesini not ve test istatistikleriyle birleştirir.\nconst iso = (v) => (v ? new Date(v).toISOString() : null);\nconst rows = (node) => $(node).all().map((i) => i.json).filter((d) => d && d.id);\nconst courses = rows('Liste: dersler');\nconst notes = rows('Liste: notlar');\nconst attempts = rows('Liste: denemeler');\nconst latest = (vals) => vals.filter(Boolean).map(iso).sort().pop() || null;\n\nconst out = courses.map((c) => {\n  const n = notes.filter((x) => x.course_id === c.id);\n  const a = attempts.filter((x) => x.course_id === c.id);\n  return {\n    id: c.id,\n    name: c.name,\n    note_count: n.length,\n    attempt_count: a.length,\n    avg_percent: a.length ? Math.round(a.reduce((s, x) => s + Number(x.percent || 0), 0) / a.length) : null,\n    last_activity: latest([c.created_at, ...n.map((x) => x.created_at), ...a.map((x) => x.created_at)]),\n  };\n}).sort((x, y) => x.name.localeCompare(y.name, 'tr'));\n\nreturn [{ json: { response: { ok: true, data: { courses: out } } } }];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "0b342f6d-262d-46a0-a02a-125c389fe8ca"
+    },
+    {
+      "name": "200 Ders listesi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        -60
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "284d8d52-adb3-4533-8713-92de4b704b26"
+    },
+    {
+      "name": "POST /courses/create",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        480
+      ],
+      "webhookId": "045eb5c5-ffc0-486c-a40b-30c29d5ec055",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "courses/create",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "4bee537f-3573-4309-853a-d7cc410e7e69"
+    },
+    {
+      "name": "Ekleme: token özeti",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        480
+      ],
+      "parameters": {
+        "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /courses/create').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "ecdf0896-8fcc-4680-9bd3-5c7577236741"
+    },
+    {
+      "name": "Ekleme: oturum",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        480
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "sessions",
+        "query": "={{ JSON.stringify({ token_hash: $json.token_hash, expires_ms: { $gt: $json.now_ms } }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "37862bbc-7830-4598-a00a-991b179bc914"
+    },
+    {
+      "name": "Ekleme: oturum geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        480
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "6867819f-8491-4020-a538-bd725ed6f9cc",
+              "leftValue": "={{ !!$json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ab5054c9-12d7-43a7-bb4f-f8b17783bdfa"
+    },
+    {
+      "name": "Ekleme: 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        620
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Oturumunuz geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapın.' } }) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "d3145b75-6274-44e6-8ffc-f789134b35b6"
+    },
+    {
+      "name": "Ekleme: doğrula",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        420
+      ],
+      "parameters": {
+        "jsCode": "// Ders adını doğrular ve ders belgesini hazırlar.\nconst crypto = require('crypto');\nconst b = $('POST /courses/create').first().json.body || {};\nconst user_id = $('Ekleme: oturum').first().json.user_id;\nconst name = String(b.name ?? '').trim().replace(/\\s+/g, ' ');\nif (!name || name.length > 100) {\n  return [{ json: { valid: false, response: { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Ders adı 1-100 karakter arasında olmalıdır.' } } } }];\n}\nconst course = { id: crypto.randomUUID(), user_id, name, created_at: new Date().toISOString() };\nreturn [{\n  json: {\n    valid: true,\n    course,\n    response: { ok: true, data: { course: { id: course.id, name: course.name, created_at: course.created_at } } },\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "3703d8ce-91bd-4a71-a6f7-db34528fa810"
+    },
+    {
+      "name": "Ekleme: ad geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        420
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "440ea0cd-8f17-423e-bdda-57fec20b44b5",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7b33ef05-ebda-4193-a2cc-45b47a1744b6"
+    },
+    {
+      "name": "400 Geçersiz ders adı",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        580
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "8e073868-e94a-49d6-b5a3-72aff7b7f9a7"
+    },
+    {
+      "name": "Ekleme: aynı ad var mı",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        380
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "courses",
+        "query": "={{ JSON.stringify({ user_id: $json.course.user_id, name: $json.course.name }) }}",
+        "options": {
+          "limit": 1,
+          "projection": "{\"id\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "14c0d925-509f-46d0-80cd-88f141e7ddba"
+    },
+    {
+      "name": "Ekleme: ders zaten var mı?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        380
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "275f6be2-cba7-4a42-a43d-816008346d83",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b4f4ab1e-ff39-45d5-b3fb-0a982bf42715"
+    },
+    {
+      "name": "409 Ders zaten var",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        520
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "{\"ok\": false, \"error\": {\"code\": \"COURSE_EXISTS\", \"message\": \"Bu isimde bir dersiniz zaten var.\"}}",
+        "options": {
+          "responseCode": 409,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "0d759ce2-1bad-474d-b340-94bc079ae644"
+    },
+    {
+      "name": "Ekleme: belge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Eklenecek ders belgesi (doğrulama düğümünden)\nreturn [{ json: $('Ekleme: doğrula').first().json.course }];\n"
+      },
+      "id": "c885f677-f3f8-413b-8e14-873f00613a95"
+    },
+    {
+      "name": "Ekleme: ders ekle",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1980,
+        300
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "insert",
+        "collection": "courses",
+        "fields": "id,user_id,name,created_at",
+        "options": {
+          "dateFields": "created_at"
+        }
+      },
+      "id": "92332974-5e0f-466c-8012-39d37c69ba55"
+    },
+    {
+      "name": "201 Ders eklendi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        300
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($('Ekleme: doğrula').first().json.response) }}",
+        "options": {
+          "responseCode": 201,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "e61097ac-debb-46a5-a38d-b0bad5b96e95"
+    }
+  ],
+  "connections": {
+    "POST /courses/list": {
+      "main": [
+        [
+          {
+            "node": "Liste: token özeti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Liste: token özeti": {
+      "main": [
+        [
+          {
+            "node": "Liste: oturum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Liste: oturum": {
+      "main": [
+        [
+          {
+            "node": "Liste: oturum geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Liste: oturum geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Liste: dersler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Liste: 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Liste: dersler": {
+      "main": [
+        [
+          {
+            "node": "Liste: notlar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Liste: notlar": {
+      "main": [
+        [
+          {
+            "node": "Liste: denemeler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Liste: denemeler": {
+      "main": [
+        [
+          {
+            "node": "Liste: birleştir",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Liste: birleştir": {
+      "main": [
+        [
+          {
+            "node": "200 Ders listesi",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /courses/create": {
+      "main": [
+        [
+          {
+            "node": "Ekleme: token özeti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ekleme: token özeti": {
+      "main": [
+        [
+          {
+            "node": "Ekleme: oturum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ekleme: oturum": {
+      "main": [
+        [
+          {
+            "node": "Ekleme: oturum geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ekleme: oturum geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Ekleme: doğrula",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ekleme: 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ekleme: doğrula": {
+      "main": [
+        [
+          {
+            "node": "Ekleme: ad geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ekleme: ad geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Ekleme: aynı ad var mı",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "400 Geçersiz ders adı",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ekleme: aynı ad var mı": {
+      "main": [
+        [
+          {
+            "node": "Ekleme: ders zaten var mı?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ekleme: ders zaten var mı?": {
+      "main": [
+        [
+          {
+            "node": "409 Ders zaten var",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ekleme: belge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ekleme: belge": {
+      "main": [
+        [
+          {
+            "node": "Ekleme: ders ekle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ekleme: ders ekle": {
+      "main": [
+        [
+          {
+            "node": "201 Ders eklendi",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

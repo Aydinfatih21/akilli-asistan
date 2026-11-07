@@ -1,0 +1,1916 @@
+{
+  "name": "01-chat",
+  "nodes": [
+    {
+      "name": "Açıklama",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -340
+      ],
+      "parameters": {
+        "content": "## 01-chat — Soru-cevap (Zorunlu 1, MongoDB)\n1) Oturum → 2) sohbet / ders / ders notları / son 9 mesaj → 3) prompt\n4) Ollama `/api/chat` (Türkçe kuralı, temperature 0.3, num_ctx 8192)\n5) Yanıt doğrulama: boş veya Türkçe dışı karakter → en fazla 3 deneme\n6) Sohbet + 2 mesaj kaydı (yalnızca başarılı yanıtta)",
+        "width": 900,
+        "height": 220
+      },
+      "id": "c7c11558-bd5d-46fb-95f5-378978923e1d"
+    },
+    {
+      "name": "500 Sunucu hatası",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3400,
+        1400
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'INTERNAL_ERROR', message: \"Sunucu hatası, lütfen tekrar deneyin.\", detail: ($json.error && ($json.error.message || $json.error.description)) || null } }) }}",
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "93bfe62c-c446-4c0b-b3b2-c442eb3107a7"
+    },
+    {
+      "name": "POST /chat/send",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "495a06a3-cee0-4336-affe-9222cfa5abc0",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat/send",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6f093072-23e6-48ff-967c-0cf4eed77ffd"
+    },
+    {
+      "name": "Soru: token özeti",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /chat/send').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "35a9cbff-9cf9-4bf7-9020-5c7bff0d7cfa"
+    },
+    {
+      "name": "Soru: oturum",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        0
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "sessions",
+        "query": "={{ JSON.stringify({ token_hash: $json.token_hash, expires_ms: { $gt: $json.now_ms } }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "e7d6f736-fbe3-4baf-a018-233a1d854666"
+    },
+    {
+      "name": "Soru: oturum geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "8b0254e5-a175-4417-95eb-12b0a7644e5a",
+              "leftValue": "={{ !!$json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "56b31436-db09-4a14-80d8-1bbdf063d66a"
+    },
+    {
+      "name": "Soru: 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        140
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Oturumunuz geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapın.' } }) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "36b6c068-e28c-4875-88f4-19222408d505"
+    },
+    {
+      "name": "Soru: doğrula",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -60
+      ],
+      "parameters": {
+        "jsCode": "// Soru isteğini doğrular.\nconst b = $('POST /chat/send').first().json.body || {};\nconst user_id = $('Soru: oturum').first().json.user_id;\nconst s = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst message = s(b.message);\nif (!message || message.length > 4000) {\n  return [{ json: { valid: false, response: { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Mesaj 1-4000 karakter arasında olmalıdır.' } } } }];\n}\nreturn [{\n  json: {\n    valid: true,\n    user_id,\n    message,\n    conversation_id: s(b.conversation_id) || null,\n    course_id: s(b.course_id) || null,\n    model: s(b.model) || null,\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "09af4691-342c-4f54-a760-74f0d5008ef3"
+    },
+    {
+      "name": "Soru: mesaj geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        -60
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "ed0f2646-d7f7-45bc-a191-8b9c3ab11b48",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "861a6ae9-a026-47ab-9f62-eda5b3ae1126"
+    },
+    {
+      "name": "400 Geçersiz mesaj",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        100
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "66f2d9d3-016a-40f4-bace-7075775a4bec"
+    },
+    {
+      "name": "Soru: sohbet bul",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        -140
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "conversations",
+        "query": "={{ JSON.stringify({ id: $json.conversation_id || '-', user_id: $json.user_id }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "7c6f16c7-67ec-443d-89b5-2a5f89fec2b3"
+    },
+    {
+      "name": "Soru: ders bul",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        -140
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "courses",
+        "query": "={{ JSON.stringify({ id: ($json.id ? ($json.course_id || '-') : ($('Soru: doğrula').first().json.course_id || '-')), user_id: $('Soru: doğrula').first().json.user_id }) }}",
+        "options": {
+          "limit": 1,
+          "projection": "{\"id\": 1, \"name\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "1033ca4d-41b7-4a81-afd9-adfa97d78f11"
+    },
+    {
+      "name": "Soru: notlar",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        -140
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "notes",
+        "query": "={{ JSON.stringify({ course_id: $json.id || '-', user_id: $('Soru: doğrula').first().json.user_id }) }}",
+        "options": {
+          "limit": 10,
+          "sort": "{\"created_at\": -1}",
+          "projection": "{\"id\": 1, \"title\": 1, \"content\": 1, \"summary\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "a0351df6-213d-4063-981d-28cf4d0e06f0"
+    },
+    {
+      "name": "Soru: geçmiş",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1980,
+        -140
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "messages",
+        "query": "={{ JSON.stringify({ conversation_id: $('Soru: sohbet bul').first().json.id || '-', user_id: $('Soru: doğrula').first().json.user_id }) }}",
+        "options": {
+          "limit": 9,
+          "sort": "{\"seq\": -1}",
+          "projection": "{\"id\": 1, \"role\": 1, \"content\": 1, \"seq\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "dd08955b-c24d-4035-8df7-accbf6dfa487"
+    },
+    {
+      "name": "Soru: hazırla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        -140
+      ],
+      "parameters": {
+        "jsCode": "// Sohbeti çözer (var olan / yeni), modele gidecek mesajları ve kaydedilecek belgeleri hazırlar.\nconst crypto = require('crypto');\nconst v = $('Soru: doğrula').first().json;\nconst conv = $('Soru: sohbet bul').first().json || {};\nconst course = $('Soru: ders bul').first().json || {};\nconst notes = $('Soru: notlar').all().map((i) => i.json).filter((d) => d && d.id);\nconst history = $('Soru: geçmiş').all().map((i) => i.json).filter((d) => d && d.id)\n  .sort((a, b) => a.seq - b.seq);\n\nconst notFound = (message) => [{ json: { valid: false, response: { ok: false, error: { code: 'NOT_FOUND', message } } } }];\nif (v.conversation_id && !conv.id) return notFound('Sohbet bulunamadı.');\nif (!v.conversation_id && v.course_id && !course.id) return notFound('Ders bulunamadı.');\n\nconst isNew = !conv.id;\nconst courseId = isNew ? (course.id || null) : (conv.course_id || null);\nconst courseName = courseId && course.id === courseId ? course.name : null;\n\n// Ders notları bağlamı: özet varsa özet, yoksa not metni; en fazla 6000 karakter\nconst noteText = (n) => (n.summary && n.summary.short)\n  ? [n.summary.short, ...(n.summary.key_points || []).map((p) => '- ' + p)].join('\\n')\n  : n.content;\nconst notesContext = notes.map((n) => `### ${n.title}\\n${noteText(n)}`).join('\\n\\n').slice(0, 6000);\n\nlet system = [\n  'Sen üniversite öğrencilerine ders çalışmada yardım eden bir yapay zekâ asistanısın.',\n  'KURALLAR:',\n  '1. Yanıtını YALNIZCA Türkçe yaz. Çince, Japonca, Korece veya Kiril alfabesinden tek bir karakter bile kullanma.',\n  '2. Açık, doğru ve öğretici ol; gerekiyorsa kısa bir örnek ver.',\n  '3. Emin olmadığın bilgiyi uydurma; bilmiyorsan bunu açıkça söyle.',\n  '4. Yanıtın en fazla 250 kelime olsun.',\n].join('\\n');\nif (notesContext) {\n  system += `\\n\\nAşağıda öğrencinin \"${courseName}\" dersine ait notları var. ` +\n    'Soruyu öncelikle bu notlara dayanarak yanıtla. Notlarda olmayan bir bilgi verirsen bunun ' +\n    `genel bilgi olduğunu belirt.\\n\\n<notlar>\\n${notesContext}\\n</notlar>`;\n}\n\nconst now = Date.now();\nconst nowIso = new Date(now).toISOString();\nconst conversation = isNew\n  ? { id: crypto.randomUUID(), user_id: v.user_id, course_id: courseId,\n      title: v.message.replace(/\\s+/g, ' ').slice(0, 60), created_at: nowIso, updated_at: nowIso }\n  : { id: conv.id, updated_at: nowIso };\n\nreturn [{\n  json: {\n    valid: true,\n    is_new: isNew,\n    conversation,\n    user_message: { id: crypto.randomUUID(), conversation_id: conversation.id, user_id: v.user_id,\n      role: 'user', content: v.message, model: null, seq: now, created_at: nowIso },\n    model: v.model, // null ise HTTP düğümü .env içindeki LLM_MODEL'i kullanır\n    messages: [\n      { role: 'system', content: system },\n      ...history.map((m) => ({ role: m.role, content: m.content })),\n      { role: 'user', content: v.message },\n    ],\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "5861b3fe-e9c3-4ab5-a0da-41a4fb4fa342"
+    },
+    {
+      "name": "Soru: sohbet/ders bulundu mu?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        -140
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "f4edf586-b242-48b1-9769-17a42aa76393",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1044d306-3950-404f-8112-a53431176b0c"
+    },
+    {
+      "name": "404 Sohbet/ders yok",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2640,
+        20
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "1e18549f-4faa-479f-8c68-f1f076ae86c3"
+    },
+    {
+      "name": "Ollama /api/chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        -220
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OLLAMA_URL }}/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $('Soru: hazırla').first().json.model || $env.LLM_MODEL, messages: $('Soru: hazırla').first().json.messages, stream: false, options: { temperature: 0.3, num_ctx: 8192 } }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "55ab5157-ead8-40c8-9960-38493e316813"
+    },
+    {
+      "name": "503 Yapay zekâ erişilemez",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2860,
+        -20
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'AI_UNAVAILABLE', message: \"Yapay zekâ servisine ulaşılamadı veya model bulunamadı. Lütfen biraz sonra tekrar deneyin.\", detail: ($json.error && ($json.error.message || $json.error.description)) || null } }) }}",
+        "options": {
+          "responseCode": 503,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "c14eb2c5-8715-4104-a072-4d3f6fb56eaf"
+    },
+    {
+      "name": "Yanıtı doğrula",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        -220
+      ],
+      "parameters": {
+        "jsCode": "// Ollama yanıtını doğrular. $runIndex: bu düğümün bu çalıştırmadaki kaçıncı turu (0'dan başlar).\nconst r = $input.first().json;\nconst content = (r.message && typeof r.message.content === 'string') ? r.message.content.trim() : '';\n// Çince/Japonca/Korece ve Kiril karakterleri\nconst foreign = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯Ѐ-ӿ]/;\n\nlet problem = null;\nif (!content) problem = 'boş yanıt';\nelse if (foreign.test(content)) problem = 'Türkçe dışı karakter';\n\nreturn [{\n  json: { valid: problem === null, problem, attempt: $runIndex + 1, content, model: r.model || null },\n}];\n"
+      },
+      "id": "1c6f8fa1-9a13-4232-94c1-61dcdb8fdcc0"
+    },
+    {
+      "name": "Yanıt geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3080,
+        -220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "b563836d-aa11-4c05-b177-2da5964fb9e9",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7da6388d-c8d6-46ee-abe0-e8a70289320a"
+    },
+    {
+      "name": "Tekrar denensin mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        -60
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "bfe3a32b-5cf8-4d2d-96d5-61efb6afc2bf",
+              "leftValue": "={{ $json.attempt }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4b876a8-499a-4472-888a-319fc696c152"
+    },
+    {
+      "name": "502 Geçersiz model yanıtı",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3520,
+        20
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'AI_BAD_OUTPUT', message: 'Yapay zekâ 3 denemede de geçerli bir yanıt üretemedi. Lütfen sorunuzu farklı ifade edip tekrar deneyin.', detail: $json.problem } }) }}",
+        "options": {
+          "responseCode": 502,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "d8f7274b-542a-4076-9c80-7101b766ff48"
+    },
+    {
+      "name": "Soru: sohbet belgesi",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        -320
+      ],
+      "parameters": {
+        "jsCode": "// Kaydedilecek sohbet belgesi + doğrulanmış model yanıtı (sonraki düğüm için)\nconst p = $('Soru: hazırla').first().json;\nconst r = $input.first().json; // \"Yanıtı doğrula\" çıktısı\nreturn [{ json: { ...p.conversation, _reply: { content: r.content, model: r.model } } }];\n"
+      },
+      "id": "38586d34-a68d-4069-bdb7-2ce7cf0d5ddb"
+    },
+    {
+      "name": "Soru: yeni sohbet mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3520,
+        -320
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "6997cebe-d1f9-431e-af66-eeed906c3371",
+              "leftValue": "={{ $('Soru: hazırla').first().json.is_new }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d1771ce5-d9a8-4572-b7bc-12043d41eddb"
+    },
+    {
+      "name": "Soru: sohbet ekle",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        3740,
+        -420
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "insert",
+        "collection": "conversations",
+        "fields": "id,user_id,course_id,title,created_at,updated_at",
+        "options": {
+          "dateFields": "created_at,updated_at"
+        }
+      },
+      "id": "e9930b65-9410-40cc-b31c-122b6c7f12f9"
+    },
+    {
+      "name": "Soru: sohbet güncelle",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        3740,
+        -240
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "update",
+        "collection": "conversations",
+        "updateKey": "id",
+        "fields": "id,updated_at",
+        "options": {
+          "dateFields": "updated_at"
+        }
+      },
+      "executeOnce": true,
+      "id": "369c0175-9538-40f4-ab71-b37357c989af"
+    },
+    {
+      "name": "Soru: mesaj belgeleri",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3960,
+        -320
+      ],
+      "parameters": {
+        "jsCode": "// Kullanıcı ve asistan mesaj belgelerini (2 öğe) ve istemci yanıtını hazırlar.\nconst crypto = require('crypto');\nconst p = $('Soru: hazırla').first().json;\nconst reply = $('Soru: sohbet belgesi').first().json._reply;\nconst userMsg = p.user_message;\nconst now = Date.now();\nconst assistant = {\n  id: crypto.randomUUID(), conversation_id: p.conversation.id, user_id: userMsg.user_id,\n  role: 'assistant', content: reply.content, model: reply.model || null,\n  seq: Math.max(now, userMsg.seq + 1), created_at: new Date(now).toISOString(),\n};\nconst response = {\n  ok: true,\n  data: {\n    conversation_id: p.conversation.id,\n    reply: { id: assistant.id, role: 'assistant', content: assistant.content,\n             model: assistant.model, created_at: assistant.created_at },\n  },\n};\nreturn [{ json: { ...userMsg, response } }, { json: assistant }];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "205ca11c-2486-452b-93a4-7abba166bdcf"
+    },
+    {
+      "name": "Soru: mesajları ekle",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        4180,
+        -320
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "insert",
+        "collection": "messages",
+        "fields": "id,conversation_id,user_id,role,content,model,seq,created_at",
+        "options": {
+          "dateFields": "created_at"
+        }
+      },
+      "id": "1555f338-dbda-4026-855a-7b1b09c83d94"
+    },
+    {
+      "name": "200 Yanıt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4400,
+        -320
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($('Soru: mesaj belgeleri').first().json.response) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "c96499ab-d1b9-4520-9ff5-8112f95be36a"
+    },
+    {
+      "name": "POST /chat/conversations",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        700
+      ],
+      "webhookId": "96fcbe9e-c04a-422f-805a-1e8e9d4b5819",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat/conversations",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d7f2b192-8927-4e3b-a536-9b51c2b1947b"
+    },
+    {
+      "name": "Sohbetler: token özeti",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        700
+      ],
+      "parameters": {
+        "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /chat/conversations').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "e723cc50-1580-41fb-845d-09e0b19e1dc6"
+    },
+    {
+      "name": "Sohbetler: oturum",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        700
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "sessions",
+        "query": "={{ JSON.stringify({ token_hash: $json.token_hash, expires_ms: { $gt: $json.now_ms } }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "1b1cb55b-2543-4dd0-807e-1c273ee1869d"
+    },
+    {
+      "name": "Sohbetler: oturum geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        700
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "af318044-cfd6-4010-9267-eda662fe83b7",
+              "leftValue": "={{ !!$json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "97496d68-e0f8-47c6-827b-e8b6ffcb5ce4"
+    },
+    {
+      "name": "Sohbetler: 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        840
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Oturumunuz geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapın.' } }) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "76faf3d0-5e70-47e9-a42d-39e07af1c2a0"
+    },
+    {
+      "name": "Sohbetler: filtre",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        640
+      ],
+      "parameters": {
+        "jsCode": "// Sohbet listesi sorgusu (isteğe bağlı ders filtresi)\nconst b = $('POST /chat/conversations').first().json.body || {};\nconst user_id = $('Sohbetler: oturum').first().json.user_id;\nconst course_id = b.course_id ? String(b.course_id).trim() : '';\nreturn [{ json: { user_id, query: course_id ? { user_id, course_id } : { user_id } } }];\n"
+      },
+      "id": "22527964-e846-4db4-b4a4-484f44531d50"
+    },
+    {
+      "name": "Sohbetler: sohbetler",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        640
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "conversations",
+        "query": "={{ JSON.stringify($json.query) }}",
+        "options": {
+          "limit": 100,
+          "sort": "{\"updated_at\": -1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "b4e9b1c0-253e-4326-bf83-6b33c9812fcf"
+    },
+    {
+      "name": "Sohbetler: dersler",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        640
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "courses",
+        "query": "={{ JSON.stringify({ user_id: $('Sohbetler: oturum').first().json.user_id }) }}",
+        "options": {
+          "projection": "{\"id\": 1, \"name\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "bad52d4d-bba0-4689-9505-31c3436abf07"
+    },
+    {
+      "name": "Sohbetler: mesajlar",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        640
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "messages",
+        "query": "={{ JSON.stringify({ user_id: $('Sohbetler: oturum').first().json.user_id }) }}",
+        "options": {
+          "limit": 5000,
+          "sort": "{\"seq\": -1}",
+          "projection": "{\"id\": 1, \"conversation_id\": 1, \"content\": 1, \"seq\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "94ecc07f-c57b-4c1c-94ba-324f79862ee0"
+    },
+    {
+      "name": "Sohbetler: birleştir",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        640
+      ],
+      "parameters": {
+        "jsCode": "// Sohbetleri ders adı, mesaj sayısı ve son mesajla birleştirir.\nconst iso = (v) => (v ? new Date(v).toISOString() : null);\nconst rows = (node) => $(node).all().map((i) => i.json).filter((d) => d && d.id);\nconst courses = Object.fromEntries(rows('Sohbetler: dersler').map((c) => [c.id, c.name]));\nconst msgs = rows('Sohbetler: mesajlar');\n\nconst conversations = rows('Sohbetler: sohbetler').map((c) => {\n  const m = msgs.filter((x) => x.conversation_id === c.id).sort((a, b) => b.seq - a.seq);\n  return {\n    id: c.id,\n    title: c.title,\n    course_id: c.course_id ?? null,\n    course_name: c.course_id ? (courses[c.course_id] ?? null) : null,\n    message_count: m.length,\n    last_message: m.length ? String(m[0].content).slice(0, 120) : null,\n    updated_at: iso(c.updated_at),\n  };\n}).sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));\n\nreturn [{ json: { response: { ok: true, data: { conversations } } } }];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "278429c9-8481-426b-820c-bead403954b9"
+    },
+    {
+      "name": "200 Sohbet listesi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        640
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "3931957c-c451-42f9-a1b6-0e8057401694"
+    },
+    {
+      "name": "POST /chat/history",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        1100
+      ],
+      "webhookId": "8dd20707-e000-4d01-aa3a-e4e1fc7d2775",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat/history",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f7f83152-08a0-4a2e-8ae3-a37a486eae3b"
+    },
+    {
+      "name": "Geçmiş: token özeti",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        1100
+      ],
+      "parameters": {
+        "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /chat/history').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "b56651c0-a40c-42ee-af1a-cf77bc54d7a4"
+    },
+    {
+      "name": "Geçmiş: oturum",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        1100
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "sessions",
+        "query": "={{ JSON.stringify({ token_hash: $json.token_hash, expires_ms: { $gt: $json.now_ms } }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "0167c6d7-55e3-4b7f-9b30-cf84b35d186d"
+    },
+    {
+      "name": "Geçmiş: oturum geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        1100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "f7b6b216-75f1-4735-9076-aebc49f3bfba",
+              "leftValue": "={{ !!$json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7423ef80-7aab-4f12-9183-a000b007be66"
+    },
+    {
+      "name": "Geçmiş: 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        1240
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Oturumunuz geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapın.' } }) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "8adb14a7-799d-40f8-b476-93b77dcc9234"
+    },
+    {
+      "name": "Geçmiş: sohbet",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        1040
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "conversations",
+        "query": "={{ JSON.stringify({ id: String($('POST /chat/history').first().json.body.conversation_id ?? '-') || '-', user_id: $('Geçmiş: oturum').first().json.user_id }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "dbd97766-d288-4566-861b-35893091a01e"
+    },
+    {
+      "name": "Geçmiş: sohbet var mı?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        1040
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "16303646-d4b3-4a27-be3a-066bd0938c98",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "98eb5b93-e74c-4a59-bfb1-fbeca0140244"
+    },
+    {
+      "name": "404 Sohbet yok",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        1180
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "{\"ok\": false, \"error\": {\"code\": \"NOT_FOUND\", \"message\": \"Sohbet bulunamadı.\"}}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "d94dc53a-cf43-4993-b785-d9d2a6a2891c"
+    },
+    {
+      "name": "Geçmiş: mesajlar",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        980
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "messages",
+        "query": "={{ JSON.stringify({ conversation_id: $json.id }) }}",
+        "options": {
+          "limit": 200,
+          "sort": "{\"seq\": 1}",
+          "projection": "{\"id\": 1, \"role\": 1, \"content\": 1, \"model\": 1, \"seq\": 1, \"created_at\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "2deac9f8-996e-48ff-9974-f867e74fd697"
+    },
+    {
+      "name": "Geçmiş: birleştir",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        980
+      ],
+      "parameters": {
+        "jsCode": "// Bir sohbetin mesajlarını eskiden yeniye döndürür.\nconst iso = (v) => (v ? new Date(v).toISOString() : null);\nconst c = $('Geçmiş: sohbet').first().json;\nconst messages = $input.all().map((i) => i.json).filter((d) => d && d.id)\n  .sort((a, b) => a.seq - b.seq)\n  .map((m) => ({ id: m.id, role: m.role, content: m.content, model: m.model ?? null, created_at: iso(m.created_at) }));\nreturn [{\n  json: {\n    response: {\n      ok: true,\n      data: { conversation: { id: c.id, title: c.title, course_id: c.course_id ?? null }, messages },\n    },\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "d6746e45-fc39-41a1-b543-57921a15b49d"
+    },
+    {
+      "name": "200 Sohbet geçmişi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        980
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "15a0f6b2-5cb9-4ec9-93e2-6278c38d19d1"
+    }
+  ],
+  "connections": {
+    "POST /chat/send": {
+      "main": [
+        [
+          {
+            "node": "Soru: token özeti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: token özeti": {
+      "main": [
+        [
+          {
+            "node": "Soru: oturum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: oturum": {
+      "main": [
+        [
+          {
+            "node": "Soru: oturum geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: oturum geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Soru: doğrula",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Soru: 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: doğrula": {
+      "main": [
+        [
+          {
+            "node": "Soru: mesaj geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: mesaj geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Soru: sohbet bul",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "400 Geçersiz mesaj",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: sohbet bul": {
+      "main": [
+        [
+          {
+            "node": "Soru: ders bul",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: ders bul": {
+      "main": [
+        [
+          {
+            "node": "Soru: notlar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: notlar": {
+      "main": [
+        [
+          {
+            "node": "Soru: geçmiş",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: geçmiş": {
+      "main": [
+        [
+          {
+            "node": "Soru: hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: hazırla": {
+      "main": [
+        [
+          {
+            "node": "Soru: sohbet/ders bulundu mu?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: sohbet/ders bulundu mu?": {
+      "main": [
+        [
+          {
+            "node": "Ollama /api/chat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "404 Sohbet/ders yok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama /api/chat": {
+      "main": [
+        [
+          {
+            "node": "Yanıtı doğrula",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "503 Yapay zekâ erişilemez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yanıtı doğrula": {
+      "main": [
+        [
+          {
+            "node": "Yanıt geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yanıt geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Soru: sohbet belgesi",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tekrar denensin mi?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tekrar denensin mi?": {
+      "main": [
+        [
+          {
+            "node": "Ollama /api/chat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "502 Geçersiz model yanıtı",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: sohbet belgesi": {
+      "main": [
+        [
+          {
+            "node": "Soru: yeni sohbet mi?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: yeni sohbet mi?": {
+      "main": [
+        [
+          {
+            "node": "Soru: sohbet ekle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Soru: sohbet güncelle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: sohbet ekle": {
+      "main": [
+        [
+          {
+            "node": "Soru: mesaj belgeleri",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: sohbet güncelle": {
+      "main": [
+        [
+          {
+            "node": "Soru: mesaj belgeleri",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: mesaj belgeleri": {
+      "main": [
+        [
+          {
+            "node": "Soru: mesajları ekle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soru: mesajları ekle": {
+      "main": [
+        [
+          {
+            "node": "200 Yanıt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /chat/conversations": {
+      "main": [
+        [
+          {
+            "node": "Sohbetler: token özeti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sohbetler: token özeti": {
+      "main": [
+        [
+          {
+            "node": "Sohbetler: oturum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sohbetler: oturum": {
+      "main": [
+        [
+          {
+            "node": "Sohbetler: oturum geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sohbetler: oturum geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Sohbetler: filtre",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sohbetler: 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sohbetler: filtre": {
+      "main": [
+        [
+          {
+            "node": "Sohbetler: sohbetler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sohbetler: sohbetler": {
+      "main": [
+        [
+          {
+            "node": "Sohbetler: dersler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sohbetler: dersler": {
+      "main": [
+        [
+          {
+            "node": "Sohbetler: mesajlar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sohbetler: mesajlar": {
+      "main": [
+        [
+          {
+            "node": "Sohbetler: birleştir",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sohbetler: birleştir": {
+      "main": [
+        [
+          {
+            "node": "200 Sohbet listesi",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /chat/history": {
+      "main": [
+        [
+          {
+            "node": "Geçmiş: token özeti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geçmiş: token özeti": {
+      "main": [
+        [
+          {
+            "node": "Geçmiş: oturum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geçmiş: oturum": {
+      "main": [
+        [
+          {
+            "node": "Geçmiş: oturum geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geçmiş: oturum geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Geçmiş: sohbet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Geçmiş: 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geçmiş: sohbet": {
+      "main": [
+        [
+          {
+            "node": "Geçmiş: sohbet var mı?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geçmiş: sohbet var mı?": {
+      "main": [
+        [
+          {
+            "node": "Geçmiş: mesajlar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "404 Sohbet yok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geçmiş: mesajlar": {
+      "main": [
+        [
+          {
+            "node": "Geçmiş: birleştir",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geçmiş: birleştir": {
+      "main": [
+        [
+          {
+            "node": "200 Sohbet geçmişi",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

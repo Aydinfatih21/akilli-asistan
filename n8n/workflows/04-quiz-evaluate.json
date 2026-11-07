@@ -1,0 +1,912 @@
+{
+  "name": "04-quiz-evaluate",
+  "nodes": [
+    {
+      "name": "Açıklama",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -340
+      ],
+      "parameters": {
+        "content": "## 04-quiz-evaluate — Performans değerlendirme (Zorunlu 4)\nPuanlama **kodla** yapılır (doğru/yanlış, yüzde, zayıf konular). Ollama yalnızca yanlış yapılan sorulara göre kişisel çalışma önerisi yazar. Model hata verirse kural tabanlı yedek öneri kullanılır; puan her durumda döner. Bir test yalnızca bir kez teslim edilebilir.",
+        "width": 1000,
+        "height": 200
+      },
+      "id": "20ef34ef-a0c1-43c5-b67a-1cc7c6e5c377"
+    },
+    {
+      "name": "500 Sunucu hatası",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2600,
+        700
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'INTERNAL_ERROR', message: \"Sunucu hatası, lütfen tekrar deneyin.\", detail: ($json.error && ($json.error.message || $json.error.description)) || null } }) }}",
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "32303cfc-699c-4dcd-b181-0819c87f94c0"
+    },
+    {
+      "name": "POST /quizzes/submit",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "9055c427-2fcc-4a63-b439-cccccbe5a938",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "quizzes/submit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "5618e37e-f2f1-4a00-8848-4f10f6bbbe8d"
+    },
+    {
+      "name": "Teslim: token özeti",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /quizzes/submit').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "3d0df659-b5cf-41f3-ba9e-5ba914875fd2"
+    },
+    {
+      "name": "Teslim: oturum",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        0
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "sessions",
+        "query": "={{ JSON.stringify({ token_hash: $json.token_hash, expires_ms: { $gt: $json.now_ms } }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "f35c87e6-b24b-4f28-996f-a19c6fd0bd80"
+    },
+    {
+      "name": "Teslim: oturum geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "3f25cf12-c461-4edb-9803-cbd9fe8ebb64",
+              "leftValue": "={{ !!$json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6653d373-25e7-4e69-b047-e108076a9924"
+    },
+    {
+      "name": "Teslim: 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        140
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Oturumunuz geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapın.' } }) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a69d421f-6e5a-46cb-af90-691f074f6220"
+    },
+    {
+      "name": "Teslim: istek",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -60
+      ],
+      "parameters": {
+        "jsCode": "// Test teslim isteğini doğrular.\nconst b = $('POST /quizzes/submit').first().json.body || {};\nconst s = (v) => (v === null || v === undefined ? '' : String(v).trim());\nif (!Array.isArray(b.answers)) {\n  return [{ json: { valid: false, response: { ok: false, error: { code: 'VALIDATION_ERROR', message: '\"answers\" bir dizi olmalıdır.' } } } }];\n}\nreturn [{\n  json: {\n    valid: true,\n    user_id: $('Teslim: oturum').first().json.user_id,\n    quiz_id: s(b.quiz_id) || '-',\n    answers: b.answers,\n    model: s(b.model) || null,\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "7a283554-b24d-4463-9228-64a2c4b76751"
+    },
+    {
+      "name": "Teslim: istek geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        -60
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "f2c1207d-a1e6-4731-90f5-12b21892c100",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4588d6c8-f6b4-471d-b4d6-63412fbe3dc5"
+    },
+    {
+      "name": "400 Geçersiz cevaplar",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        100
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ec4855de-21e8-4f81-a793-9896fe5e3baf"
+    },
+    {
+      "name": "Teslim: test",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        -140
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "quizzes",
+        "query": "={{ JSON.stringify({ id: $json.quiz_id, user_id: $json.user_id }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "7d19b5a9-93a9-4a61-9124-df6ea6a0530e"
+    },
+    {
+      "name": "Teslim: test var mı?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        -140
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "54b6ee21-2271-4475-bafd-f60719db4332",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9edba46a-0ad2-458b-87d9-c28fafe95c1a"
+    },
+    {
+      "name": "404 Test yok",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        20
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "{\"ok\": false, \"error\": {\"code\": \"NOT_FOUND\", \"message\": \"Test bulunamadı.\"}}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "00a0132b-9327-4f5d-944e-4b75f6403d19"
+    },
+    {
+      "name": "Teslim: önceki teslim",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        -220
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "quiz_attempts",
+        "query": "={{ JSON.stringify({ quiz_id: $json.id }) }}",
+        "options": {
+          "limit": 1,
+          "projection": "{\"id\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "c6294d94-1e07-4c88-b69c-2de592eb6aae"
+    },
+    {
+      "name": "Teslim: daha önce teslim edildi mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        -220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "dc790b75-03dc-4c6d-93c4-f370ac2100a5",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "de345ff4-b3fc-409f-b176-48d6c0c61976"
+    },
+    {
+      "name": "409 Zaten teslim edildi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        -60
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "{\"ok\": false, \"error\": {\"code\": \"ALREADY_SUBMITTED\", \"message\": \"Bu test daha önce teslim edildi. Yeni bir test oluşturabilirsiniz.\"}}",
+        "options": {
+          "responseCode": 409,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "dcc162a4-f03f-4641-bfce-6cdff0eecefe"
+    },
+    {
+      "name": "Teslim: puanla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        -300
+      ],
+      "parameters": {
+        "jsCode": "// Puanlama KODLA yapılır (model değil). Sonra öneri için Ollama isteği hazırlanır.\nconst crypto = require('crypto');\nconst quiz = $('Teslim: test').first().json;\nconst req = $('Teslim: istek').first().json;\n\nconst given = new Map();\nfor (const a of req.answers) {\n  if (a && a.question_id !== null && a.question_id !== undefined) given.set(String(a.question_id), a.selected_index);\n}\nconst questions = [...quiz.questions].sort((a, b) => (a.position || 0) - (b.position || 0));\nconst graded = questions.map((q) => {\n  let sel = given.get(q.id);\n  sel = sel === null || sel === undefined || sel === '' ? null : Number(sel);\n  if (!(Number.isInteger(sel) && sel >= 0 && sel <= 3)) sel = null; // boş / geçersiz → yanlış\n  return { q, sel, ok: sel === q.correct_index };\n});\nconst score = graded.filter((g) => g.ok).length;\nconst total = graded.length;\nconst percent = Math.round((100 * score) / total);\n\n// Zayıf konular: yanlış sayısına göre sıralı\nconst counts = {};\nfor (const g of graded) if (!g.ok) counts[g.q.topic] = (counts[g.q.topic] || 0) + 1;\nconst weak_topics = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([t]) => t);\n\nconst wrong = graded.filter((g) => !g.ok);\nconst detail = wrong.length\n  ? wrong.map((g, i) => [\n      `${i + 1}. [${g.q.topic}] ${g.q.question}`,\n      `   Öğrencinin cevabı: ${g.sel === null ? '(boş bırakıldı)' : g.q.options[g.sel]}`,\n      `   Doğru cevap: ${g.q.options[g.q.correct_index]}`,\n      `   Açıklama: ${g.q.explanation}`,\n    ].join('\\n')).join('\\n')\n  : 'Öğrenci tüm soruları doğru yanıtladı.';\n\nconst system = [\n  'Sen öğrencilere test sonuçlarına göre kişisel çalışma önerisi veren bir öğretim asistanısın.',\n  'KURALLAR:',\n  '1. YALNIZCA Türkçe yaz. Çince, Japonca, Korece veya Kiril alfabesinden tek bir karakter bile kullanma.',\n  '2. Öğrenciye doğrudan \"sen\" diye hitap et; destekleyici ama net ol.',\n  '3. Yanlış yapılan konuları adıyla an ve her biri için somut bir çalışma adımı öner.',\n  '4. 3-5 cümle yaz; başlık veya madde işareti kullanma.',\n  '5. Tüm sorular doğruysa tebrik et ve bir sonraki adım için kısa bir öneri ver.',\n].join('\\n');\n\nreturn [{\n  json: {\n    attempt: {\n      id: crypto.randomUUID(), quiz_id: quiz.id, user_id: req.user_id, course_id: quiz.course_id,\n      score, total, percent,\n      answers: graded.map((g) => ({ question_id: g.q.id, selected_index: g.sel, is_correct: g.ok })),\n      created_at: new Date().toISOString(),\n    },\n    results: graded.map((g) => ({\n      question_id: g.q.id, selected_index: g.sel, correct_index: g.q.correct_index,\n      is_correct: g.ok, explanation: g.q.explanation,\n    })),\n    weak_topics,\n    body: {\n      model: req.model,\n      stream: false,\n      options: { temperature: 0.4, num_ctx: 4096 },\n      messages: [\n        { role: 'system', content: system },\n        { role: 'user', content: `Test: ${quiz.title}\\nPuan: ${score}/${total} (%${percent})\\n\\nYanlış yanıtlanan sorular:\\n${detail}` },\n      ],\n    },\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "1137e77f-2f79-4ac0-8c3d-494ebf4b5c88"
+    },
+    {
+      "name": "Teslim: sonuç",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3320,
+        -380
+      ],
+      "parameters": {
+        "jsCode": "// Sonucu birleştirir. Model geçerli öneri üretemediyse (ya da Ollama kapalıysa)\n// yanlış konulardan kural tabanlı yedek öneri yazılır; puan her durumda döner.\nconst s = $('Teslim: puanla').first().json;\nconst r = $input.first().json || {};\nconst useAi = r.valid === true && !!r.content;\n\nlet text;\nif (useAi) {\n  text = r.content;\n} else if (s.weak_topics.length) {\n  text = `Şu konularda eksiğin görünüyor: ${s.weak_topics.join(', ')}. ` +\n    'Bu konulara ait ders notlarını yeniden oku ve yanlış yaptığın soruların açıklamalarını dikkatle incele. ' +\n    'Ardından aynı nottan yeni bir test oluşturarak kendini tekrar dene.';\n} else {\n  text = 'Tebrikler, tüm soruları doğru yanıtladın! Bilgini pekiştirmek için daha zor seviyede yeni bir test ' +\n    'oluşturabilir ya da bir sonraki konuya geçebilirsin.';\n}\nconst attempt = { ...s.attempt, recommendation: text, recommendation_source: useAi ? 'ai' : 'fallback' };\nreturn [{\n  json: {\n    ...attempt,\n    response: {\n      ok: true,\n      data: {\n        attempt_id: attempt.id, score: attempt.score, total: attempt.total, percent: attempt.percent,\n        results: s.results, weak_topics: s.weak_topics,\n        recommendation: text, recommendation_source: attempt.recommendation_source,\n      },\n    },\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "fee24377-2fea-4607-8f16-6e1af329b1e8"
+    },
+    {
+      "name": "Öneri: Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        -300
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OLLAMA_URL }}/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify(Object.assign({}, $('Teslim: puanla').first().json.body, { model: $('Teslim: puanla').first().json.body.model || $env.LLM_MODEL })) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "26422c61-3d85-496e-94fc-8216cba301fd"
+    },
+    {
+      "name": "Öneri: yanıtı doğrula",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        -300
+      ],
+      "parameters": {
+        "jsCode": "// Öneri metnini doğrular ($runIndex: deneme sırası).\nconst r = $input.first().json;\nconst content = (r.message && typeof r.message.content === 'string') ? r.message.content.trim() : '';\nconst FOREIGN = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯Ѐ-ӿ]/;\nlet problem = null;\nif (content.length < 40) problem = 'öneri çok kısa';\nelse if (FOREIGN.test(content)) problem = 'Türkçe dışı karakter';\nreturn [{ json: { valid: problem === null, problem, attempt: $runIndex + 1, content, model: r.model || null } }];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "5e989368-fbc7-4207-bb00-f46808a9a9b4"
+    },
+    {
+      "name": "Öneri: yanıt geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        -300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "e9011394-95dd-4091-937e-cf6da597a2dd",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "dcb525f2-5e26-431f-a424-5e4067d42584"
+    },
+    {
+      "name": "Öneri: tekrar denensin mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3080,
+        -140
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "942b1669-7772-4e34-bdb2-ae17d46e918e",
+              "leftValue": "={{ $json.attempt }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "72244bdc-feb9-41f4-8efa-44bce7d9080a"
+    },
+    {
+      "name": "Teslim: kaydet",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        3540,
+        -380
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "BURADAKİ_KİMLİK",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "insert",
+        "collection": "quiz_attempts",
+        "fields": "id,quiz_id,user_id,course_id,score,total,percent,answers,recommendation,recommendation_source,created_at",
+        "options": {
+          "dateFields": "created_at"
+        }
+      },
+      "id": "7db6e1fd-927f-42a5-90b3-a542e6c93580"
+    },
+    {
+      "name": "409 Eşzamanlı teslim",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3760,
+        -220
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "{\"ok\": false, \"error\": {\"code\": \"ALREADY_SUBMITTED\", \"message\": \"Bu test daha önce teslim edildi.\"}}",
+        "options": {
+          "responseCode": 409,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "afe9b661-6d8f-4037-baad-d80df9bc77e4"
+    },
+    {
+      "name": "200 Sonuç",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3760,
+        -380
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($('Teslim: sonuç').first().json.response) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "64a78e8e-2166-457e-9a08-2fb49f050186"
+    }
+  ],
+  "connections": {
+    "POST /quizzes/submit": {
+      "main": [
+        [
+          {
+            "node": "Teslim: token özeti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: token özeti": {
+      "main": [
+        [
+          {
+            "node": "Teslim: oturum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: oturum": {
+      "main": [
+        [
+          {
+            "node": "Teslim: oturum geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: oturum geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Teslim: istek",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Teslim: 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: istek": {
+      "main": [
+        [
+          {
+            "node": "Teslim: istek geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: istek geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Teslim: test",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "400 Geçersiz cevaplar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: test": {
+      "main": [
+        [
+          {
+            "node": "Teslim: test var mı?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: test var mı?": {
+      "main": [
+        [
+          {
+            "node": "Teslim: önceki teslim",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "404 Test yok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: önceki teslim": {
+      "main": [
+        [
+          {
+            "node": "Teslim: daha önce teslim edildi mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: daha önce teslim edildi mi?": {
+      "main": [
+        [
+          {
+            "node": "409 Zaten teslim edildi",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Teslim: puanla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: puanla": {
+      "main": [
+        [
+          {
+            "node": "Öneri: Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Öneri: Ollama": {
+      "main": [
+        [
+          {
+            "node": "Öneri: yanıtı doğrula",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Teslim: sonuç",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Öneri: yanıtı doğrula": {
+      "main": [
+        [
+          {
+            "node": "Öneri: yanıt geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Teslim: sonuç",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Öneri: yanıt geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "Teslim: sonuç",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Öneri: tekrar denensin mi?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Öneri: tekrar denensin mi?": {
+      "main": [
+        [
+          {
+            "node": "Öneri: Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Teslim: sonuç",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: sonuç": {
+      "main": [
+        [
+          {
+            "node": "Teslim: kaydet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: kaydet": {
+      "main": [
+        [
+          {
+            "node": "200 Sonuç",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "409 Eşzamanlı teslim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

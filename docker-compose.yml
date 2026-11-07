@@ -1,0 +1,128 @@
+# Akıllı Ders ve Soru Asistanı - altyapı (n8n + Ollama + MongoDB)
+# Başlatma:  docker compose up -d
+# Durdurma:  docker compose down        (veriler korunur)
+# Sıfırlama: docker compose down -v     (TÜM veriler silinir, modeller dahil)
+name: akilli-asistan
+
+services:
+  # ---------------------------------------------------------------
+  # MongoDB - uygulama verileri (kullanıcı, ders, not, sohbet, test)
+  # Koleksiyonlar, şema doğrulamaları ve indeksler ilk açılışta
+  # mongo/init/01-init.js ile oluşturulur.
+  # ---------------------------------------------------------------
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:?.env dosyasında MONGO_USER tanımlı değil}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?.env dosyasında MONGO_PASSWORD tanımlı değil}
+      MONGO_INITDB_DATABASE: asistan
+      TZ: Europe/Istanbul
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      # Sadece bu bilgisayardan erişilir (MongoDB Compass vb. için)
+      - "127.0.0.1:27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
+  # ---------------------------------------------------------------
+  # Ollama (yerel LLM) - NVIDIA GPU kullanır
+  # ---------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    environment:
+      # Model 30 dk boyunca VRAM'de kalsın (demoda ilk istek yavaş olmasın)
+      OLLAMA_KEEP_ALIVE: 30m
+      OLLAMA_MAX_LOADED_MODELS: 2
+      OLLAMA_NUM_PARALLEL: 1
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 15s
+
+  # ---------------------------------------------------------------
+  # Modelleri otomatik indirir, bitince kapanır (tek seferlik servis)
+  # İlerleme:  docker compose logs -f ollama-init
+  # ---------------------------------------------------------------
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      OLLAMA_HOST: ollama:11434
+      LLM_MODEL: ${LLM_MODEL:-qwen2.5:7b}
+      LLM_MODEL_2: ${LLM_MODEL_2:-}
+      EMBED_MODEL: ${EMBED_MODEL:-}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for m in $${LLM_MODEL} $${LLM_MODEL_2} $${EMBED_MODEL}; do
+          if [ -n "$$m" ]; then
+            echo "Model indiriliyor: $$m"
+            ollama pull "$$m"
+          fi
+        done
+        echo "Model kurulumu tamamlandı."
+
+  # ---------------------------------------------------------------
+  # n8n (iş akışları / webhook'lar)
+  # Arayüz: http://localhost:5678
+  # n8n kendi iç kayıtlarını (workflow, credential) volume içindeki
+  # SQLite dosyasında tutar; uygulama verileri MongoDB'dedir.
+  # ---------------------------------------------------------------
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    ports:
+      # Telefondan/emülatörden erişim için tüm arayüzlere açık
+      - "5678:5678"
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?.env dosyasında N8N_ENCRYPTION_KEY tanımlı değil}
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5678/
+      N8N_SECURE_COOKIE: "false"        # http üzerinden yerel geliştirme için
+      N8N_PAYLOAD_SIZE_MAX: 64          # MB (PDF/TXT yüklemeleri için)
+      GENERIC_TIMEZONE: Europe/Istanbul
+      TZ: Europe/Istanbul
+      # Code düğümlerinde şifre özeti (scrypt) ve oturum anahtarı için
+      NODE_FUNCTION_ALLOW_BUILTIN: crypto
+      # Workflow içinde {{ $env.OLLAMA_URL }} ve {{ $env.LLM_MODEL }} kullanabilmek için
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      OLLAMA_URL: http://ollama:11434
+      LLM_MODEL: ${LLM_MODEL:-qwen2.5:7b}
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  mongo_data:
+  ollama_data:
+  n8n_data:
