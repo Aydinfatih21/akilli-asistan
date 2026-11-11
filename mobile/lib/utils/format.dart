@@ -1,3 +1,10 @@
+/// İlk harfi Türkçe kurallarıyla büyütür (i → İ).
+String capitalizeTr(String s) {
+  if (s.isEmpty) return s;
+  final first = s[0] == 'i' ? 'İ' : s[0].toUpperCase();
+  return first + s.substring(1);
+}
+
 /// Türkçe göreli zaman: "az önce", "5 dk önce", "dün", "12.11.2026".
 String relativeTime(DateTime? t) {
   if (t == null) return '';

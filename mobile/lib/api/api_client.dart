@@ -22,7 +22,7 @@ class ApiException implements Exception {
 }
 
 /// n8n webhook'larıyla konuşan düşük seviyeli HTTP istemcisi.
-/// Tüm istekler POST + JSON; yanıt zarfı docs/API.md'de tanımlıdır.
+/// İstekler POST + JSON (dosya yüklemede multipart); yanıt zarfı docs/API.md'de tanımlıdır.
 class ApiClient {
   ApiClient({required this.baseUrl, http.Client? httpClient}) : _http = httpClient ?? http.Client();
 
@@ -52,11 +52,29 @@ class ApiClient {
       if (token != null) 'Authorization': 'Bearer $token',
     };
 
+    return _send(() => _http
+        .post(uri, headers: headers, body: jsonEncode(body ?? const <String, dynamic>{}))
+        .timeout(timeout));
+  }
+
+  /// Dosya yükleme (multipart/form-data). Dosya "file" alanında gönderilir.
+  Future<Map<String, dynamic>> upload(
+    String path, {
+    required List<int> bytes,
+    required String fileName,
+    Duration timeout = const Duration(seconds: 60),
+  }) async {
+    final req = http.MultipartRequest('POST', Uri.parse('$baseUrl/$path'))
+      ..headers['Accept'] = 'application/json'
+      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: fileName));
+    if (token != null) req.headers['Authorization'] = 'Bearer $token';
+    return _send(() async => http.Response.fromStream(await _http.send(req).timeout(timeout)).timeout(timeout));
+  }
+
+  Future<Map<String, dynamic>> _send(Future<http.Response> Function() request) async {
     final http.Response res;
     try {
-      res = await _http
-          .post(uri, headers: headers, body: jsonEncode(body ?? const <String, dynamic>{}))
-          .timeout(timeout);
+      res = await request();
     } on TimeoutException {
       throw ApiException(0, 'TIMEOUT', 'Sunucu zamanında yanıt vermedi. Lütfen tekrar deneyin.');
     } on SocketException {

@@ -6,11 +6,13 @@ import '../api/asistan_api.dart';
 import '../api/models.dart';
 import '../state/auth_state.dart';
 import '../utils/format.dart';
+import '../widgets/course_actions.dart';
 import '../widgets/state_views.dart';
 import 'chat_screen.dart';
 import 'conversations_screen.dart';
 import 'course_screen.dart';
 import 'settings_screen.dart';
+import 'stats_screen.dart';
 
 /// Ana sayfa: karşılama + genel istatistik, ders listesi, ders ekleme.
 class HomeScreen extends StatefulWidget {
@@ -68,6 +70,11 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(tooltip: 'Yenile', onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh_rounded)),
           IconButton(
+            tooltip: 'İstatistikler',
+            onPressed: () => _push(const StatsScreen()),
+            icon: const Icon(Icons.insights_rounded),
+          ),
+          IconButton(
             tooltip: 'Sohbetler',
             onPressed: () => _push(const ConversationsScreen()),
             icon: const Icon(Icons.forum_outlined),
@@ -79,11 +86,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addCourse,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Ders ekle'),
-      ),
+      // Liste boşken ortadaki "Ders ekle" düğmesi yeterli; ikinci düğmeyi gösterme
+      floatingActionButton: (_courses?.isNotEmpty ?? false)
+          ? FloatingActionButton.extended(
+              onPressed: _addCourse,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Ders ekle'),
+            )
+          : null,
       body: _buildBody(),
     );
   }
@@ -119,7 +129,20 @@ class _HomeScreenState extends State<HomeScreen> {
           else ...[
             Text('Dersler', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            for (final c in courses) _CourseCard(course: c, onTap: () => _push(CourseScreen(course: c))),
+            for (final c in courses)
+              _CourseCard(
+                course: c,
+                onTap: () => _push(CourseScreen(course: c)),
+                onMore: () async {
+                  if (await showCourseActions(context, c)) _load();
+                },
+              ),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text('İpucu: Dersi düzenlemek veya silmek için karta basılı tut.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ),
           ],
         ],
       ),
@@ -138,7 +161,7 @@ class _SummaryCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final name = context.select<AuthState, String>((a) => a.user?.name ?? '');
-    final firstName = name.split(' ').first;
+    final firstName = capitalizeTr(name.split(' ').first);
 
     final notes = courses.fold<int>(0, (s, c) => s + c.noteCount);
     final tests = courses.fold<int>(0, (s, c) => s + c.attemptCount);
@@ -223,10 +246,11 @@ class _AskCard extends StatelessWidget {
 
 // ------------------------------------------------------------------ ders kartı
 class _CourseCard extends StatelessWidget {
-  const _CourseCard({required this.course, required this.onTap});
+  const _CourseCard({required this.course, required this.onTap, required this.onMore});
 
   final Course course;
   final VoidCallback onTap;
+  final VoidCallback onMore;
 
   @override
   Widget build(BuildContext context) {
@@ -247,6 +271,7 @@ class _CourseCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onMore,
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(

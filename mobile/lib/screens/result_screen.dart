@@ -81,6 +81,37 @@ class ResultScreen extends StatelessWidget {
             const SizedBox(height: 16),
           ],
 
+          // ---------------------------------------------------------- geçmişe dönük analiz
+          if (result.recurringTopics.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: cs.error, width: 1.5),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.repeat_rounded, color: cs.error),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Tekrarlayan hata', style: tt.titleSmall?.copyWith(color: cs.error)),
+                        const SizedBox(height: 4),
+                        for (final r in result.recurringTopics)
+                          Text('• ${r.topic}: önceki ${r.previous} testte de yanlış yaptın', style: tt.bodyMedium),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           // ---------------------------------------------------------- öneri
           Card(
             elevation: 0,
@@ -104,7 +135,7 @@ class ResultScreen extends StatelessWidget {
                       style: tt.bodyLarge?.copyWith(color: cs.onPrimaryContainer, height: 1.45)),
                   if (result.recommendationSource == 'fallback') ...[
                     const SizedBox(height: 8),
-                    Text('Yapay zekâya ulaşılamadığı için otomatik öneri gösteriliyor.',
+                    Text('Yapay zekâ önerisi kullanılamadığı için konulara göre otomatik öneri gösteriliyor.',
                         style: tt.labelSmall?.copyWith(color: cs.onPrimaryContainer)),
                   ],
                 ],

@@ -81,11 +81,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Center(
-                      child: Container(
-                        width: 84,
-                        height: 84,
-                        decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(24)),
-                        child: Icon(Icons.school_rounded, size: 46, color: cs.onPrimaryContainer),
+                      child: Image.asset(
+                        'assets/icon/app_icon.png',
+                        width: 92,
+                        height: 92,
+                        // pubspec'e asset eklenmemişse eski ikon gösterilir
+                        errorBuilder: (_, _, _) => Container(
+                          width: 84,
+                          height: 84,
+                          decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(24)),
+                          child: Icon(Icons.school_rounded, size: 46, color: cs.onPrimaryContainer),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),

@@ -97,13 +97,21 @@ class Conversation {
 }
 
 class ChatMessage {
-  const ChatMessage({required this.id, required this.role, required this.content, this.model, this.createdAt});
+  const ChatMessage({
+    required this.id,
+    required this.role,
+    required this.content,
+    this.model,
+    this.modelReason,
+    this.createdAt,
+  });
 
   factory ChatMessage.fromJson(Map<String, dynamic> j) => ChatMessage(
         id: asStr(j['id']),
         role: asStr(j['role'], 'assistant'),
         content: asStr(j['content']),
         model: j['model']?.toString(),
+        modelReason: j['model_reason']?.toString(),
         createdAt: asDate(j['created_at']),
       );
 
@@ -111,6 +119,7 @@ class ChatMessage {
   final String role; // user | assistant
   final String content;
   final String? model;
+  final String? modelReason; // otomatik model seçiminin nedeni
   final DateTime? createdAt;
 
   bool get isUser => role == 'user';
@@ -154,18 +163,34 @@ class NoteItem {
   final DateTime? createdAt;
 }
 
+class Flashcard {
+  const Flashcard({required this.front, required this.back});
+
+  factory Flashcard.fromJson(Map<String, dynamic> j) => Flashcard(front: asStr(j['front']), back: asStr(j['back']));
+
+  final String front;
+  final String back;
+}
+
 class NoteSummary {
-  const NoteSummary({required this.short, required this.keyPoints, required this.keywords});
+  const NoteSummary({
+    required this.short,
+    required this.keyPoints,
+    required this.keywords,
+    this.flashcards = const [],
+  });
 
   factory NoteSummary.fromJson(Map<String, dynamic> j) => NoteSummary(
         short: asStr(j['short']),
         keyPoints: asStrList(j['key_points']),
         keywords: asStrList(j['keywords']),
+        flashcards: asList(j['flashcards'], Flashcard.fromJson),
       );
 
   final String short;
   final List<String> keyPoints;
   final List<String> keywords;
+  final List<Flashcard> flashcards; // hap bilgi kartları
 }
 
 class SummaryResult {
@@ -261,6 +286,8 @@ class QuizResult {
     required this.weakTopics,
     required this.recommendation,
     required this.recommendationSource,
+    this.recommendationIssue,
+    this.recurringTopics = const [],
   });
 
   factory QuizResult.fromJson(Map<String, dynamic> j) => QuizResult(
@@ -272,6 +299,8 @@ class QuizResult {
         weakTopics: asStrList(j['weak_topics']),
         recommendation: asStr(j['recommendation']),
         recommendationSource: asStr(j['recommendation_source'], 'ai'),
+        recommendationIssue: j['recommendation_issue']?.toString(),
+        recurringTopics: asList(j['recurring_topics'], RecurringTopic.fromJson),
       );
 
   final String attemptId;
@@ -282,4 +311,127 @@ class QuizResult {
   final List<String> weakTopics;
   final String recommendation;
   final String recommendationSource; // ai | fallback
+  final String? recommendationIssue; // yedek öneri neden kullanıldı (teşhis)
+  final List<RecurringTopic> recurringTopics; // önceki testlerde de hata yapılan konular
+}
+
+class RecurringTopic {
+  const RecurringTopic(this.topic, this.previous);
+
+  factory RecurringTopic.fromJson(Map<String, dynamic> j) => RecurringTopic(asStr(j['topic']), asInt(j['previous']) ?? 0);
+
+  final String topic;
+  final int previous; // kaç önceki testte
+}
+
+// ------------------------------------------------------------------ istatistik
+class StatsOverview {
+  const StatsOverview({
+    required this.attemptCount,
+    required this.questionCount,
+    required this.correctCount,
+    required this.avgPercent,
+    required this.courses,
+    required this.topics,
+    required this.recurring,
+    required this.recent,
+  });
+
+  factory StatsOverview.fromJson(Map<String, dynamic> j) {
+    final o = asMap(j['overall']);
+    return StatsOverview(
+      attemptCount: asInt(o['attempt_count']) ?? 0,
+      questionCount: asInt(o['question_count']) ?? 0,
+      correctCount: asInt(o['correct_count']) ?? 0,
+      avgPercent: asInt(o['avg_percent']),
+      courses: asList(j['courses'], CourseStat.fromJson),
+      topics: asList(j['topics'], TopicStat.fromJson),
+      recurring: asList(j['recurring'], TopicStat.fromJson),
+      recent: asList(j['recent'], RecentAttempt.fromJson),
+    );
+  }
+
+  final int attemptCount;
+  final int questionCount;
+  final int correctCount;
+  final int? avgPercent;
+  final List<CourseStat> courses;
+  final List<TopicStat> topics;
+  final List<TopicStat> recurring; // tekrarlayan zayıflıklar
+  final List<RecentAttempt> recent;
+}
+
+class CourseStat {
+  const CourseStat({required this.name, required this.attemptCount, this.avgPercent, this.firstPercent, this.lastPercent});
+
+  factory CourseStat.fromJson(Map<String, dynamic> j) => CourseStat(
+        name: asStr(j['name']),
+        attemptCount: asInt(j['attempt_count']) ?? 0,
+        avgPercent: asInt(j['avg_percent']),
+        firstPercent: asInt(j['first_percent']),
+        lastPercent: asInt(j['last_percent']),
+      );
+
+  final String name;
+  final int attemptCount;
+  final int? avgPercent;
+  final int? firstPercent;
+  final int? lastPercent;
+}
+
+class TopicStat {
+  const TopicStat({
+    required this.topic,
+    this.courseName,
+    required this.total,
+    required this.correct,
+    required this.accuracy,
+    required this.wrongAttempts,
+  });
+
+  factory TopicStat.fromJson(Map<String, dynamic> j) => TopicStat(
+        topic: asStr(j['topic']),
+        courseName: j['course_name']?.toString(),
+        total: asInt(j['total']) ?? 0,
+        correct: asInt(j['correct']) ?? 0,
+        accuracy: asInt(j['accuracy']) ?? 0,
+        wrongAttempts: asInt(j['wrong_attempts']) ?? 0,
+      );
+
+  final String topic;
+  final String? courseName;
+  final int total;
+  final int correct;
+  final int accuracy;
+  final int wrongAttempts; // kaç ayrı testte hata yapıldı
+}
+
+class RecentAttempt {
+  const RecentAttempt({this.createdAt, this.courseName, required this.score, required this.total, required this.percent});
+
+  factory RecentAttempt.fromJson(Map<String, dynamic> j) => RecentAttempt(
+        createdAt: asDate(j['created_at']),
+        courseName: j['course_name']?.toString(),
+        score: asInt(j['score']) ?? 0,
+        total: asInt(j['total']) ?? 0,
+        percent: asInt(j['percent']) ?? 0,
+      );
+
+  final DateTime? createdAt;
+  final String? courseName;
+  final int score;
+  final int total;
+  final int percent;
+}
+
+/// /notes/extract-pdf yanıtı.
+class PdfText {
+  PdfText({required this.text, required this.title, this.pages});
+
+  final String text;
+  final String title;
+  final int? pages;
+
+  factory PdfText.fromJson(Map<String, dynamic> j) =>
+      PdfText(text: asStr(j['text']), title: asStr(j['title']), pages: asInt(j['pages']));
 }

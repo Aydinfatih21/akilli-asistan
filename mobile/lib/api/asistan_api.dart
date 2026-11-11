@@ -24,6 +24,16 @@ class AsistanApi {
   Future<Course> createCourse(String name) async =>
       Course.fromJson(asMap((await client.post('courses/create', body: {'name': name}))['course']));
 
+  Future<Course> renameCourse(String courseId, String name) async => Course.fromJson(
+      asMap((await client.post('courses/update', body: {'course_id': courseId, 'name': name}))['course']));
+
+  /// Dersi notları, testleri, sonuçları ve sohbetleriyle birlikte siler.
+  Future<void> deleteCourse(String courseId) async {
+    await client.post('courses/delete', body: {'course_id': courseId});
+  }
+
+  Future<StatsOverview> stats() async => StatsOverview.fromJson(await client.post('stats/overview'));
+
   // ---------------------------------------------------------------- sohbet
   Future<ChatReply> sendMessage(String message, {String? conversationId, String? courseId, String? model}) async =>
       ChatReply.fromJson(await client.post(
@@ -51,6 +61,13 @@ class AsistanApi {
         body: {'course_id': courseId, 'title': title, 'content': content, 'source': source});
     return asStr(asMap(data['note'])['id']);
   }
+
+  /// PDF'teki seçilebilir metni sunucuda çıkarır (n8n Extract From File).
+  Future<PdfText> extractPdf(List<int> bytes, String fileName) async => PdfText.fromJson(await client.upload(
+        'notes/extract-pdf',
+        bytes: bytes,
+        fileName: fileName,
+      ));
 
   Future<List<NoteItem>> notes(String courseId) async =>
       asList((await client.post('notes/list', body: {'course_id': courseId}))['notes'], NoteItem.fromJson);

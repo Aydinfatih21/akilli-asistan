@@ -5,6 +5,7 @@ import '../api/api_client.dart';
 import '../api/asistan_api.dart';
 import '../api/models.dart';
 import '../utils/format.dart';
+import '../widgets/course_actions.dart';
 import '../widgets/state_views.dart';
 import 'add_note_screen.dart';
 import 'chat_screen.dart';
@@ -21,6 +22,7 @@ class CourseScreen extends StatefulWidget {
 }
 
 class _CourseScreenState extends State<CourseScreen> {
+  late Course _course = widget.course; // ad değişirse güncellenir
   List<NoteItem>? _notes;
   List<Conversation> _conversations = const [];
   String? _error;
@@ -54,10 +56,25 @@ class _CourseScreenState extends State<CourseScreen> {
     }
   }
 
+  Future<void> _onMenu(String action) async {
+    final c = Course(
+      id: _course.id,
+      name: _course.name,
+      noteCount: _notes?.length ?? _course.noteCount,
+      attemptCount: _course.attemptCount,
+    );
+    if (action == 'rename') {
+      final updated = await showRenameCourseDialog(context, c);
+      if (updated != null && mounted) setState(() => _course = updated);
+    } else if (action == 'delete') {
+      if (await confirmAndDeleteCourse(context, c) && mounted) Navigator.pop(context);
+    }
+  }
+
   Future<void> _addNote() async {
     final created = await Navigator.push<NoteItem>(
       context,
-      MaterialPageRoute(builder: (_) => AddNoteScreen(course: widget.course)),
+      MaterialPageRoute(builder: (_) => AddNoteScreen(course: _course)),
     );
     if (created == null || !mounted) return;
     _load();
@@ -68,7 +85,7 @@ class _CourseScreenState extends State<CourseScreen> {
   Future<void> _openNote(NoteItem note) async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => NoteScreen(course: widget.course, note: note)),
+      MaterialPageRoute(builder: (_) => NoteScreen(course: _course, note: note)),
     );
     if (mounted) _load();
   }
@@ -81,7 +98,7 @@ class _CourseScreenState extends State<CourseScreen> {
           conversationId: conversation?.id,
           title: conversation?.title,
           courseId: widget.course.id,
-          courseName: widget.course.name,
+          courseName: _course.name,
         ),
       ),
     );
@@ -92,9 +109,17 @@ class _CourseScreenState extends State<CourseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.course.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(_course.name, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(tooltip: 'Yenile', onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh_rounded)),
+          PopupMenuButton<String>(
+            tooltip: 'Ders işlemleri',
+            onSelected: _onMenu,
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'rename', child: ListTile(leading: Icon(Icons.edit_outlined), title: Text('Adını değiştir'))),
+              PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_outline), title: Text('Dersi sil'))),
+            ],
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(

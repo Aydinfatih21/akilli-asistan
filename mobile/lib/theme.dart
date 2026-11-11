@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color seed = Color(0xFF4F46E5); // indigo
+  static const Color seed = Color(0xFF3B5BDB); // canlı indigo-mavi
 
-  static ThemeData light() => _build(ColorScheme.fromSeed(seedColor: seed));
+  // vibrant: varsayılan (tonalSpot) şemaya göre daha doygun, canlı renkler
+  static ThemeData light() =>
+      _build(ColorScheme.fromSeed(seedColor: seed, dynamicSchemeVariant: DynamicSchemeVariant.vibrant));
 
-  static ThemeData dark() => _build(ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark));
+  static ThemeData dark() => _build(ColorScheme.fromSeed(
+      seedColor: seed, brightness: Brightness.dark, dynamicSchemeVariant: DynamicSchemeVariant.vibrant));
 
   static ThemeData _build(ColorScheme cs) {
     final radius = BorderRadius.circular(14);

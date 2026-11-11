@@ -89,6 +89,14 @@ class _NoteScreenState extends State<NoteScreen> {
             title: 'Yapay zekâ özeti',
             child: _buildSummary(),
           ),
+          if (_summary != null && !_summarizing) ...[
+            const SizedBox(height: 16),
+            _section(
+              icon: Icons.style_rounded,
+              title: 'Hap bilgiler',
+              child: _buildFlashcards(_summary!.summary.flashcards),
+            ),
+          ],
           const SizedBox(height: 16),
           _section(
             icon: Icons.quiz_rounded,
@@ -194,6 +202,27 @@ class _NoteScreenState extends State<NoteScreen> {
     );
   }
 
+  Widget _buildFlashcards(List<Flashcard> cards) {
+    final cs = Theme.of(context).colorScheme;
+    if (cards.isEmpty) {
+      // Bu özellikten önce oluşturulmuş özetlerde kart yok
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Bu özet, hap bilgi kartları eklenmeden önce oluşturulmuş.',
+              style: TextStyle(color: cs.onSurfaceVariant)),
+          const SizedBox(height: 10),
+          FilledButton.tonalIcon(
+            onPressed: () => _summarize(force: true),
+            icon: const Icon(Icons.auto_awesome_rounded),
+            label: const Text('Hap bilgileri oluştur'),
+          ),
+        ],
+      );
+    }
+    return FlashcardDeck(cards: cards);
+  }
+
   Widget _buildQuizOptions() {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
@@ -254,6 +283,122 @@ class _AiProgress extends StatelessWidget {
         const SizedBox(height: 12),
         Text(message, style: Theme.of(context).textTheme.bodyMedium),
       ],
+    );
+  }
+}
+
+/// Kaydırılabilir hap bilgi kartları; karta dokununca çevrilir.
+class FlashcardDeck extends StatefulWidget {
+  const FlashcardDeck({super.key, required this.cards});
+
+  final List<Flashcard> cards;
+
+  @override
+  State<FlashcardDeck> createState() => _FlashcardDeckState();
+}
+
+class _FlashcardDeckState extends State<FlashcardDeck> {
+  final _controller = PageController(viewportFraction: 0.9);
+  int _index = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        SizedBox(
+          height: 170,
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: widget.cards.length,
+            onPageChanged: (i) => setState(() => _index = i),
+            itemBuilder: (_, i) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: _FlashcardView(card: widget.cards[i]),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var i = 0; i < widget.cards.length; i++)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: i == _index ? 18 : 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: i == _index ? cs.primary : cs.outlineVariant,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text('Kart ${_index + 1} / ${widget.cards.length} · çevirmek için dokun',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+      ],
+    );
+  }
+}
+
+class _FlashcardView extends StatefulWidget {
+  const _FlashcardView({required this.card});
+
+  final Flashcard card;
+
+  @override
+  State<_FlashcardView> createState() => _FlashcardViewState();
+}
+
+class _FlashcardViewState extends State<_FlashcardView> {
+  bool _back = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final bg = _back ? cs.tertiaryContainer : cs.primaryContainer;
+    final fg = _back ? cs.onTertiaryContainer : cs.onPrimaryContainer;
+    return GestureDetector(
+      onTap: () => setState(() => _back = !_back),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 250),
+        transitionBuilder: (child, anim) => FadeTransition(
+          opacity: anim,
+          child: ScaleTransition(scale: Tween(begin: 0.92, end: 1.0).animate(anim), child: child),
+        ),
+        child: Container(
+          key: ValueKey(_back),
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(18)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(_back ? 'BİLGİ' : 'KAVRAM', style: tt.labelSmall?.copyWith(color: fg, letterSpacing: 1.2)),
+              const SizedBox(height: 10),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Text(
+                    _back ? widget.card.back : widget.card.front,
+                    textAlign: TextAlign.center,
+                    style: (_back ? tt.titleMedium : tt.titleLarge)
+                        ?.copyWith(color: fg, fontWeight: _back ? FontWeight.w500 : FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

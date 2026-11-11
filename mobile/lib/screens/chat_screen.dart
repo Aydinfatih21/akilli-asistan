@@ -115,7 +115,7 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18)),
             Text(
-              [if (widget.courseName != null) 'Ders notlarıyla', model ?? 'varsayılan model'].join(' · '),
+              [if (widget.courseName != null) 'Ders notlarıyla', model ?? 'otomatik model seçimi'].join(' · '),
               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
             ),
           ],
@@ -247,7 +247,7 @@ class _Bubble extends StatelessWidget {
               SimpleMarkdown(message.content, color: cs.onSurface),
             if (!user && message.model != null) ...[
               const SizedBox(height: 6),
-              Text(message.model!, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+              Text([message.model!, if (message.modelReason != null) message.modelReason!].join(' · '), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
             ],
           ],
         ),

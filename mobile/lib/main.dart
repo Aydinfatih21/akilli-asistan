@@ -52,6 +52,7 @@ class AsistanApp extends StatelessWidget {
       scaffoldMessengerKey: messengerKey,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      themeMode: context.watch<SettingsState>().themeMode,
       home: const _Root(),
     );
   }

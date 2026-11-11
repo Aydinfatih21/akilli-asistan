@@ -5,13 +5,13 @@ import '../config.dart';
 import '../state/auth_state.dart';
 import '../state/settings_state.dart';
 
-/// Ayarlar: yapay zekâ modeli seçimi, sunucu bilgisi, hesap.
+/// Ayarlar: tema, yapay zekâ modeli (otomatik / gelişmiş), sunucu bilgisi, hesap.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   static const _descriptions = {
     'gemma3:4b': 'Türkçesi doğal ve hızlı',
-    'qwen2.5:7b': 'Daha büyük model, yapılandırılmış çıktıda güçlü',
+    'qwen2.5:7b': 'Matematik, kod ve yapılandırılmış çıktıda güçlü',
   };
 
   Future<void> _logout(BuildContext context) async {
@@ -39,43 +39,74 @@ class SettingsScreen extends StatelessWidget {
     final settings = context.watch<SettingsState>();
     final user = context.watch<AuthState>().user;
 
-    Widget option(String? value, String title, String subtitle) {
-      final selected = settings.model == value;
+    Widget header(String text) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+          child: Text(text, style: tt.titleSmall?.copyWith(color: cs.primary)),
+        );
+
+    Widget modelOption(String m) {
+      final selected = settings.model == m;
       return ListTile(
+        contentPadding: const EdgeInsets.only(left: 32, right: 16),
         leading: Icon(selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
             color: selected ? cs.primary : cs.onSurfaceVariant),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        onTap: () => settings.setModel(value),
+        title: Text(m),
+        subtitle: Text(_descriptions[m] ?? 'Ollama modeli'),
+        onTap: () => settings.setModel(m),
       );
     }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ayarlar')),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.only(bottom: 24),
         children: [
+          header('Görünüm'),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text('Yapay zekâ modeli', style: tt.titleSmall?.copyWith(color: cs.primary)),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SegmentedButton<ThemeMode>(
+              segments: const [
+                ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto_outlined), label: Text('Sistem')),
+                ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode_outlined), label: Text('Açık')),
+                ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_outlined), label: Text('Koyu')),
+              ],
+              selected: {settings.themeMode},
+              onSelectionChanged: (v) => settings.setThemeMode(v.first),
+            ),
           ),
-          option(null, 'Sunucu varsayılanı', 'Sunucudaki .env ayarında tanımlı model'),
-          for (final m in AppConfig.models) option(m, m, _descriptions[m] ?? 'Ollama modeli'),
-          const Divider(height: 32),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-            child: Text('Sunucu', style: tt.titleSmall?.copyWith(color: cs.primary)),
+          header('Yapay zekâ modeli'),
+          ListTile(
+            leading: Icon(
+              settings.model == null ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+              color: settings.model == null ? cs.primary : cs.onSurfaceVariant,
+            ),
+            title: const Text('Otomatik (önerilen)'),
+            subtitle: const Text(
+                'Sorunun türüne göre seçilir: Türkçe anlatım, özet ve önerilerde gemma3:4b; matematik, kod ve sayısal '
+                'sorularda qwen2.5:7b. Her yanıtın altında hangi modelin neden seçildiği yazar.'),
+            isThreeLine: true,
+            onTap: () => settings.setModel(null),
           ),
+          Theme(
+            // ExpansionTile'ın üst/alt çizgilerini gizle
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              leading: const Icon(Icons.tune_rounded),
+              title: const Text('Gelişmiş: modeli elle seç'),
+              subtitle: Text(settings.model == null ? 'Kapalı' : 'Seçili: ${settings.model}'),
+              initiallyExpanded: settings.model != null,
+              children: [for (final m in AppConfig.models) modelOption(m)],
+            ),
+          ),
+          const Divider(height: 24),
+          header('Sunucu'),
           const ListTile(
             leading: Icon(Icons.dns_outlined),
             title: Text('n8n adresi'),
             subtitle: Text(AppConfig.apiBase),
           ),
-          const Divider(height: 32),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-            child: Text('Hesap', style: tt.titleSmall?.copyWith(color: cs.primary)),
-          ),
+          const Divider(height: 24),
+          header('Hesap'),
           ListTile(
             leading: const Icon(Icons.person_outline),
             title: Text(user?.name ?? ''),

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../api/api_client.dart';
@@ -9,7 +10,7 @@ import '../api/asistan_api.dart';
 import '../api/models.dart';
 import '../widgets/state_views.dart';
 
-/// Not ekleme: metni yapıştır veya TXT dosyası seç.
+/// Not ekleme: metni yapıştır veya TXT / PDF dosyası seç.
 class AddNoteScreen extends StatefulWidget {
   const AddNoteScreen({super.key, required this.course});
 
@@ -24,10 +25,11 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
 
   final _formKey = GlobalKey<FormState>();
   final _title = TextEditingController();
-  final _content = TextEditingController();
+  final _content = _LimitController(maxLength);
   String _source = 'text';
   String? _fileName;
   bool _saving = false;
+  bool _extracting = false; // PDF metni sunucuda çıkarılıyor
   String? _error;
 
   @override
@@ -37,36 +39,61 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
     super.dispose();
   }
 
-  Future<void> _pickTxt() async {
+  /// PDF'ler için üst sınır (n8n'in istek boyutu sınırının altında kalır).
+  static const int maxPdfBytes = 10 * 1024 * 1024;
+
+  Future<void> _pickFile() async {
     setState(() => _error = null);
     try {
       // file_picker 13.x API'si: tek dosya için statik pickFile, içerik için readAsBytes
       final file = await FilePicker.pickFile(
         type: FileType.custom,
-        allowedExtensions: const ['txt'],
+        allowedExtensions: const ['txt', 'pdf'],
       );
       if (file == null) return; // kullanıcı vazgeçti
       final bytes = await file.readAsBytes();
       if (!mounted) return;
-      var text = utf8.decode(bytes, allowMalformed: true).replaceAll('\r\n', '\n').trim();
-      var warning = text.contains('�')
-          ? 'Dosyadaki bazı karakterler okunamadı. Dosyayı UTF-8 olarak kaydedip tekrar deneyin.'
-          : null;
+      final isPdf = file.name.toLowerCase().endsWith('.pdf');
+
+      var text = '';
+      String? warning;
+      if (isPdf) {
+        if (bytes.length > maxPdfBytes) {
+          setState(() => _error = 'PDF en fazla 10 MB olabilir (seçilen: ${(bytes.length / 1048576).toStringAsFixed(1)} MB).');
+          return;
+        }
+        setState(() => _extracting = true);
+        try {
+          final pdf = await context.read<AsistanApi>().extractPdf(bytes, file.name);
+          text = pdf.text;
+        } on ApiException catch (e) {
+          if (mounted) setState(() => _error = e.message);
+          return;
+        } finally {
+          if (mounted) setState(() => _extracting = false);
+        }
+        if (!mounted) return;
+      } else {
+        text = utf8.decode(bytes, allowMalformed: true).replaceAll('\r\n', '\n').trim();
+        if (text.contains('\uFFFD')) {
+          warning = 'Dosyadaki bazı karakterler okunamadı. Dosyayı UTF-8 olarak kaydedip tekrar deneyin.';
+        }
+      }
       if (text.length > maxLength) {
-        text = text.substring(0, maxLength);
-        warning = 'Dosya $maxLength karakterden uzun olduğu için kısaltıldı.';
+        warning = 'Dosya ${text.length} karakter; $maxLength karakteri aşan kısım kırmızı gösteriliyor. '
+            'Kaydetmeden önce kısalt veya "Fazlasını kırp" düğmesini kullan.';
       }
       setState(() {
         _content.text = text;
-        _source = 'txt';
+        _source = isPdf ? 'pdf' : 'txt';
         _fileName = file.name;
         if (_title.text.trim().isEmpty) {
-          _title.text = file.name.replaceAll(RegExp(r'\.txt$', caseSensitive: false), '');
+          _title.text = file.name.replaceAll(RegExp(r'\.(txt|pdf)$', caseSensitive: false), '');
         }
         _error = warning;
       });
     } catch (e) {
-      setState(() => _error = 'Dosya seçilemedi: $e');
+      if (mounted) setState(() => _error = 'Dosya seçilemedi: $e');
     }
   }
 
@@ -101,6 +128,7 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    _content.overColor = cs.error;
     return Scaffold(
       appBar: AppBar(title: const Text('Not ekle')),
       body: SafeArea(
@@ -112,9 +140,13 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
               Text('Ders: ${widget.course.name}', style: TextStyle(color: cs.onSurfaceVariant)),
               const SizedBox(height: 12),
               OutlinedButton.icon(
-                onPressed: _saving ? null : _pickTxt,
-                icon: const Icon(Icons.upload_file_rounded),
-                label: Text(_fileName == null ? 'TXT dosyası seç' : 'Seçilen: $_fileName'),
+                onPressed: _saving || _extracting ? null : _pickFile,
+                icon: _extracting
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.upload_file_rounded),
+                label: Text(_extracting
+                    ? 'PDF okunuyor…'
+                    : (_fileName == null ? 'TXT veya PDF dosyası seç' : 'Seçilen: $_fileName')),
                 style: OutlinedButton.styleFrom(padding: const EdgeInsets.all(16)),
               ),
               const SizedBox(height: 8),
@@ -137,6 +169,9 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
                 minLines: 10,
                 maxLines: 18,
                 maxLength: maxLength,
+                // Yazmayı engelleme; sınırı aşan kısım kırmızı gösterilir, kayıt doğrulamada durdurulur
+                maxLengthEnforcement: MaxLengthEnforcement.none,
+                onChanged: (_) => setState(() {}),
                 keyboardType: TextInputType.multiline,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
@@ -151,10 +186,22 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
                   return null;
                 },
               ),
+              if (_content.text.length > maxLength)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () => setState(() {
+                      _content.text = _content.text.substring(0, maxLength);
+                      _content.selection = TextSelection.collapsed(offset: maxLength);
+                    }),
+                    icon: const Icon(Icons.content_cut_rounded, size: 18),
+                    label: Text('Fazlasını kırp (${_content.text.length - maxLength} karakter)'),
+                  ),
+                ),
               if (_error != null) ...[const SizedBox(height: 4), ErrorBanner(_error!)],
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: _saving ? null : _save,
+                onPressed: _saving || _extracting ? null : _save,
                 icon: _saving
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.save_rounded),
@@ -165,5 +212,28 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
         ),
       ),
     );
+  }
+}
+
+/// Sınırı aşan metni kırmızı (arka planı hafif renkli) gösteren metin denetleyicisi.
+class _LimitController extends TextEditingController {
+  _LimitController(this.limit);
+
+  final int limit;
+  Color overColor = Colors.red;
+
+  @override
+  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
+    // Sınır aşılmadıysa veya klavye kelime oluşturuyorsa (IME) varsayılan görünüm
+    if (text.length <= limit || (withComposing && value.isComposingRangeValid)) {
+      return super.buildTextSpan(context: context, style: style, withComposing: withComposing);
+    }
+    return TextSpan(style: style, children: [
+      TextSpan(text: text.substring(0, limit)),
+      TextSpan(
+        text: text.substring(limit),
+        style: TextStyle(color: overColor, backgroundColor: overColor.withAlpha(36)),
+      ),
+    ]);
   }
 }
