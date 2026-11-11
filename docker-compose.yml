@@ -72,8 +72,8 @@ services:
     restart: "no"
     environment:
       OLLAMA_HOST: ollama:11434
-      LLM_MODEL: ${LLM_MODEL:-qwen2.5:7b}
-      LLM_MODEL_2: ${LLM_MODEL_2:-}
+      LLM_MODEL: ${LLM_MODEL:-gemma3:4b}
+      LLM_MODEL_2: ${LLM_MODEL_2:-qwen2.5:7b}
       EMBED_MODEL: ${EMBED_MODEL:-}
     entrypoint: ["/bin/sh", "-c"]
     command:
@@ -118,7 +118,10 @@ services:
       # Workflow içinde {{ $env.OLLAMA_URL }} ve {{ $env.LLM_MODEL }} kullanabilmek için
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       OLLAMA_URL: http://ollama:11434
-      LLM_MODEL: ${LLM_MODEL:-qwen2.5:7b}
+      # Otomatik model seçimi: Türkçe anlatım (özet, öneri, genel sohbet) ve
+      # matematik / kod / sayısal içerik için ayrı modeller
+      LLM_MODEL: ${LLM_MODEL:-gemma3:4b}
+      LLM_MODEL_REASONING: ${LLM_MODEL_2:-qwen2.5:7b}
     volumes:
       - n8n_data:/home/node/.n8n
 

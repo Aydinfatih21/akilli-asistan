@@ -14,7 +14,7 @@
         "width": 900,
         "height": 180
       },
-      "id": "0dc02f99-41b1-490e-84f8-ba52818948cf"
+      "id": "5ee11afb-11df-4556-8e9a-89d66993f806"
     },
     {
       "name": "500 Sunucu hatası",
@@ -39,7 +39,7 @@
           }
         }
       },
-      "id": "5025d508-531a-43df-80be-5eb15781c52c"
+      "id": "6d108510-c1fc-4c88-938b-d9e10c970686"
     },
     {
       "name": "POST /auth/register",
@@ -49,14 +49,14 @@
         0,
         0
       ],
-      "webhookId": "d983df79-9c31-4203-9625-9b02b7763572",
+      "webhookId": "0d7e443e-0d1b-43b2-a452-77506e4e7744",
       "parameters": {
         "httpMethod": "POST",
         "path": "auth/register",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "5e438670-5ffe-4a5f-a083-0c8e5a831700"
+      "id": "a33af78e-5c1e-4c1b-a1f7-b09b112499f6"
     },
     {
       "name": "Kayıt: doğrula",
@@ -70,7 +70,7 @@
         "jsCode": "// Kayıt isteğini doğrular ve kullanıcı belgesini hazırlar (şifre scrypt ile özetlenir).\nconst crypto = require('crypto');\nconst b = $('POST /auth/register').first().json.body || {};\nconst name = String(b.name ?? '').trim().replace(/\\s+/g, ' ');\nconst email = String(b.email ?? '').trim().toLowerCase();\nconst password = String(b.password ?? '');\nconst fail = (message) => [{ json: { valid: false, response: { ok: false, error: { code: 'VALIDATION_ERROR', message } } } }];\n\nif (!name || name.length > 100) return fail('Ad 1-100 karakter arasında olmalıdır.');\nif (!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) return fail('Geçerli bir e-posta adresi girin.');\nif (password.length < 6 || password.length > 72) return fail('Şifre en az 6, en fazla 72 karakter olmalıdır.');\n\nconst salt = crypto.randomBytes(16).toString('hex');\nconst hash = crypto.scryptSync(password, salt, 64).toString('hex');\nreturn [{\n  json: {\n    valid: true,\n    user: {\n      id: crypto.randomUUID(),\n      name,\n      email,\n      password_hash: `scrypt$${salt}$${hash}`,\n      created_at: new Date().toISOString(),\n    },\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "b9407b46-6ab2-4ab8-b9e3-1fbb55357df3"
+      "id": "0f5ead20-2a83-4c48-b8d2-0c96c67b2045"
     },
     {
       "name": "Kayıt: alanlar geçerli mi?",
@@ -89,7 +89,7 @@
           },
           "conditions": [
             {
-              "id": "4783622f-dbe2-424a-8c62-499e3e5cc255",
+              "id": "13083dc6-6038-4063-92f7-65b45d09deb6",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -103,7 +103,7 @@
         },
         "options": {}
       },
-      "id": "00be51be-ccf0-4474-bd5e-7aec3fee885f"
+      "id": "61efff39-decb-4344-adad-a91fe4c7d93d"
     },
     {
       "name": "400 Geçersiz alan",
@@ -128,7 +128,7 @@
           }
         }
       },
-      "id": "2c57c03e-acc0-43ca-83d1-365f43f3399f"
+      "id": "3b172737-0bce-4866-9bab-f1069be1c45d"
     },
     {
       "name": "Kayıt: e-posta ara",
@@ -141,7 +141,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "mongoDb": {
-          "id": "BURADAKİ_KİMLİK",
+          "id": "FgLEfSazu2hgNgcG",
           "name": "Asistan Mongo"
         }
       },
@@ -156,7 +156,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "747ded7e-f3be-4d5c-9ee5-c7a894f0baf2"
+      "id": "7b23295c-5e33-48e5-81fb-f9d30e490bb2"
     },
     {
       "name": "Kayıt: e-posta kayıtlı mı?",
@@ -175,7 +175,7 @@
           },
           "conditions": [
             {
-              "id": "86fb92d5-b177-4962-809f-c09365a5b32f",
+              "id": "6f207499-0046-4259-be9b-0fc23000289f",
               "leftValue": "={{ !!$json.id }}",
               "rightValue": "",
               "operator": {
@@ -189,7 +189,7 @@
         },
         "options": {}
       },
-      "id": "c56c5951-cca2-40e8-9905-8e11e691e387"
+      "id": "6e6c4daa-c99c-4e6a-8562-60bda987f050"
     },
     {
       "name": "409 E-posta kayıtlı",
@@ -214,7 +214,7 @@
           }
         }
       },
-      "id": "b43be54b-92cc-4018-b077-2dc49a064441"
+      "id": "3649c0f0-4181-485c-b3f3-96db24b5722b"
     },
     {
       "name": "Kayıt: belge",
@@ -227,7 +227,7 @@
       "parameters": {
         "jsCode": "// Eklenecek kullanıcı belgesi (doğrulama düğümünden)\nreturn [{ json: $('Kayıt: doğrula').first().json.user }];\n"
       },
-      "id": "257967ca-afe9-45cb-9db6-8f0d78bd98a1"
+      "id": "d640e13e-2d6e-4e26-ab46-a06ee6bbbe70"
     },
     {
       "name": "Kayıt: kullanıcı ekle",
@@ -240,7 +240,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "mongoDb": {
-          "id": "BURADAKİ_KİMLİK",
+          "id": "FgLEfSazu2hgNgcG",
           "name": "Asistan Mongo"
         }
       },
@@ -252,7 +252,7 @@
           "dateFields": "created_at"
         }
       },
-      "id": "6102bf72-8c36-40e5-bafd-bbf30acd6dc3"
+      "id": "7d0337a4-6964-48b6-8920-ea0ebbb482ed"
     },
     {
       "name": "Kayıt: oturum",
@@ -266,7 +266,7 @@
         "jsCode": "// Yeni kullanıcı için oturum anahtarı üretir. Veritabanına yalnızca SHA-256 özeti yazılır.\nconst crypto = require('crypto');\nconst u = $('Kayıt: doğrula').first().json.user;\nconst token = crypto.randomBytes(32).toString('hex');\nconst now = Date.now();\nconst expires = now + 30 * 24 * 3600 * 1000; // 30 gün\nreturn [{\n  json: {\n    token_hash: crypto.createHash('sha256').update(token).digest('hex'),\n    user_id: u.id,\n    created_at: new Date(now).toISOString(),\n    expires_at: new Date(expires).toISOString(),\n    expires_ms: expires,\n    response: { ok: true, data: { token, user: { id: u.id, name: u.name, email: u.email } } },\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "21083a83-37bf-40f6-a05b-3a9002cfc0b7"
+      "id": "4406e1ae-70df-471d-8311-7df69674ad49"
     },
     {
       "name": "Kayıt: oturum ekle",
@@ -279,7 +279,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "mongoDb": {
-          "id": "BURADAKİ_KİMLİK",
+          "id": "FgLEfSazu2hgNgcG",
           "name": "Asistan Mongo"
         }
       },
@@ -291,7 +291,7 @@
           "dateFields": "created_at,expires_at"
         }
       },
-      "id": "e6af6a88-fbf2-4012-ae2d-7dcafc154943"
+      "id": "3c3e2c1b-1553-4710-b82c-3443437cc5e1"
     },
     {
       "name": "201 Kayıt OK",
@@ -316,7 +316,7 @@
           }
         }
       },
-      "id": "7cfea91d-6762-467b-b1e3-da6cabe09a46"
+      "id": "76b891e8-4f4b-4db6-a6f2-599604509dee"
     },
     {
       "name": "POST /auth/login",
@@ -326,14 +326,14 @@
         0,
         480
       ],
-      "webhookId": "66d7df99-5702-47b0-b73d-e1d0985a5a50",
+      "webhookId": "3065ba53-490b-4b96-918f-f1b509d07a65",
       "parameters": {
         "httpMethod": "POST",
         "path": "auth/login",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "6bd8a4e9-a7dd-452f-8d09-30382d1685a4"
+      "id": "48551d6e-e7b9-4a6b-b914-60fef3abd7f4"
     },
     {
       "name": "Giriş: kullanıcı ara",
@@ -346,7 +346,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "mongoDb": {
-          "id": "BURADAKİ_KİMLİK",
+          "id": "FgLEfSazu2hgNgcG",
           "name": "Asistan Mongo"
         }
       },
@@ -360,7 +360,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "a23986be-7815-4f55-be6a-25d541904cb9"
+      "id": "0e1c339f-77a2-4cd1-a6d8-04aa6bfa1c29"
     },
     {
       "name": "Giriş: şifre kontrol",
@@ -374,7 +374,7 @@
         "jsCode": "// Şifreyi kayıtlı scrypt özetiyle karşılaştırır; doğruysa oturum anahtarı üretir.\nconst crypto = require('crypto');\nconst b = $('POST /auth/login').first().json.body || {};\nconst u = $input.first().json || {};\nconst password = String(b.password ?? '');\n\nlet ok = false;\nif (u.id && typeof u.password_hash === 'string') {\n  const [alg, salt, hash] = u.password_hash.split('$');\n  if (alg === 'scrypt' && salt && hash) {\n    const calc = crypto.scryptSync(password, salt, 64);\n    const expected = Buffer.from(hash, 'hex');\n    ok = expected.length === calc.length && crypto.timingSafeEqual(calc, expected);\n  }\n}\nif (!ok) {\n  return [{ json: { valid: false, response: { ok: false, error: { code: 'INVALID_CREDENTIALS', message: 'E-posta veya şifre hatalı.' } } } }];\n}\n\nconst token = crypto.randomBytes(32).toString('hex');\nconst now = Date.now();\nconst expires = now + 30 * 24 * 3600 * 1000; // 30 gün\nreturn [{\n  json: {\n    valid: true,\n    token_hash: crypto.createHash('sha256').update(token).digest('hex'),\n    user_id: u.id,\n    created_at: new Date(now).toISOString(),\n    expires_at: new Date(expires).toISOString(),\n    expires_ms: expires,\n    response: { ok: true, data: { token, user: { id: u.id, name: u.name, email: u.email } } },\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "d84e0cda-a5f5-4b77-8b94-4f5835be2574"
+      "id": "44c0cce9-5cc8-4487-bbde-37c7f708d386"
     },
     {
       "name": "Giriş: şifre doğru mu?",
@@ -393,7 +393,7 @@
           },
           "conditions": [
             {
-              "id": "46e6ea87-3f61-42da-addd-db1ad09df886",
+              "id": "edac2dbc-90eb-4496-90a9-d096aa1aaa8c",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -407,7 +407,7 @@
         },
         "options": {}
       },
-      "id": "2bd14c6a-ed9b-4081-8daf-733f06d32024"
+      "id": "55492335-adc9-4fce-a923-8de8dee21537"
     },
     {
       "name": "401 Hatalı bilgi",
@@ -432,7 +432,7 @@
           }
         }
       },
-      "id": "55f1ba4a-f65a-492f-8c56-648802f3f544"
+      "id": "d423771d-6d03-40cd-a8fb-b04e6ab50413"
     },
     {
       "name": "Giriş: oturum ekle",
@@ -445,7 +445,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "mongoDb": {
-          "id": "BURADAKİ_KİMLİK",
+          "id": "FgLEfSazu2hgNgcG",
           "name": "Asistan Mongo"
         }
       },
@@ -457,7 +457,7 @@
           "dateFields": "created_at,expires_at"
         }
       },
-      "id": "1ca00969-5a62-4b3a-b049-0719f46e252e"
+      "id": "57c2c90f-8a43-474c-924b-2d75bc8110cd"
     },
     {
       "name": "200 Giriş OK",
@@ -482,7 +482,7 @@
           }
         }
       },
-      "id": "b5961223-802a-4ffd-93e5-b3f57e6227ec"
+      "id": "baa24ead-239d-413c-bbfb-872cb3f1a942"
     },
     {
       "name": "POST /auth/logout",
@@ -492,14 +492,14 @@
         0,
         840
       ],
-      "webhookId": "f8b73673-4628-4a96-bffe-0134459f4601",
+      "webhookId": "fd4aea8e-bac3-416f-9d08-e7f16c3e5398",
       "parameters": {
         "httpMethod": "POST",
         "path": "auth/logout",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "ac5ab21e-8eb7-4732-b2c6-5ec2cec517d5"
+      "id": "32ee9ccb-855f-4ab8-b576-9555a807211f"
     },
     {
       "name": "Çıkış: token özeti",
@@ -513,7 +513,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /auth/logout').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "fb94b67d-8c0f-4ef3-af32-60b8d0fee530"
+      "id": "3e04196f-b1c0-41f1-8d87-448709f5af69"
     },
     {
       "name": "Çıkış: oturumu sil",
@@ -526,7 +526,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "mongoDb": {
-          "id": "BURADAKİ_KİMLİK",
+          "id": "FgLEfSazu2hgNgcG",
           "name": "Asistan Mongo"
         }
       },
@@ -537,7 +537,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "009e9d3c-0cb4-4442-b71f-5eb2d7bb5e77"
+      "id": "feb4d46d-64f5-476f-8c26-7e4b81873319"
     },
     {
       "name": "200 Çıkış OK",
@@ -562,7 +562,7 @@
           }
         }
       },
-      "id": "ad7e7251-4042-4919-bc40-3b76570bd0c5"
+      "id": "f78301f3-5424-4b3d-9f41-30c4dc3f9855"
     }
   ],
   "connections": {

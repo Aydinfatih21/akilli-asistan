@@ -79,6 +79,7 @@ if ($r) {
         Write-Host ("         {0}  seçilen: {1}  doğru: {2}" -f $mark, $x.selected_index, $x.correct_index) -ForegroundColor DarkCyan
     }
     Write-Host "       Öneri ($($r.data.recommendation_source)): $($r.data.recommendation)" -ForegroundColor Cyan
+    if ($r.data.recommendation_issue) { Write-Host "       Yedek öneri nedeni: $($r.data.recommendation_issue)" -ForegroundColor Yellow }
 }
 Test-Case "Aynı testi tekrar teslim (409)" "quizzes/submit" @{ quiz_id = $q.data.quiz_id; answers = $answers } 409 $tok | Out-Null
 

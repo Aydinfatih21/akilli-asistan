@@ -14,7 +14,7 @@
         "width": 1000,
         "height": 220
       },
-      "id": "68a4e30a-1517-4b7f-b17a-0bb15835495e"
+      "id": "227abb56-69cf-4b59-b1d2-d42c73cd889c"
     },
     {
       "name": "500 Sunucu hatası",
@@ -39,7 +39,7 @@
           }
         }
       },
-      "id": "7db38ee3-201f-4d98-9bb1-2b23ba265ac5"
+      "id": "b6ddfcbb-f83f-461d-9215-df41844909d7"
     },
     {
       "name": "POST /quizzes/generate",
@@ -49,14 +49,14 @@
         0,
         0
       ],
-      "webhookId": "ae769aaf-74a4-4358-9401-c7d8438ddc0e",
+      "webhookId": "29c78086-4289-4dce-8b57-94d62525a0ae",
       "parameters": {
         "httpMethod": "POST",
         "path": "quizzes/generate",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "077eaf61-ae84-49d6-b26c-dde295c6d018"
+      "id": "cb48dc08-c003-4125-baab-8e1364cafad2"
     },
     {
       "name": "Test: token özeti",
@@ -70,7 +70,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /quizzes/generate').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "beaf4790-1870-458f-b690-d7f25e7f4dde"
+      "id": "6ae09945-1e37-42ab-b910-4e716627971f"
     },
     {
       "name": "Test: oturum",
@@ -83,7 +83,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "mongoDb": {
-          "id": "BURADAKİ_KİMLİK",
+          "id": "FgLEfSazu2hgNgcG",
           "name": "Asistan Mongo"
         }
       },
@@ -97,7 +97,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "c6945af5-bff9-4aa3-a498-b1572a08c327"
+      "id": "201f0587-fc17-420b-86a6-dbb81f79160e"
     },
     {
       "name": "Test: oturum geçerli mi?",
@@ -116,7 +116,7 @@
           },
           "conditions": [
             {
-              "id": "fbec6ff1-a37c-4c0b-8345-0154e2d28c74",
+              "id": "67a0f83f-2de6-48fa-bf1d-76d1089733ec",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -130,7 +130,7 @@
         },
         "options": {}
       },
-      "id": "9db7fa03-0417-40ed-ad4b-0dcdbb1ab05c"
+      "id": "00f5c6d9-a3b3-4bee-8228-12feeb95323b"
     },
     {
       "name": "Test: 401",
@@ -155,7 +155,7 @@
           }
         }
       },
-      "id": "3e2e4591-466b-4bec-8fb2-f4544b00c87a"
+      "id": "18c2b188-e826-4725-a9ec-df7dc36de332"
     },
     {
       "name": "Test: istek",
@@ -169,7 +169,7 @@
         "jsCode": "// Test oluşturma isteğini doğrular.\nconst b = $('POST /quizzes/generate').first().json.body || {};\nconst s = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst count = s(b.question_count) === '' ? 5 : Number(b.question_count);\nconst difficulty = s(b.difficulty) || 'medium';\nconst fail = (message) => [{ json: { valid: false, response: { ok: false, error: { code: 'VALIDATION_ERROR', message } } } }];\nif (!Number.isInteger(count) || count < 5 || count > 10) return fail('Soru sayısı 5-10 arasında olmalıdır.');\nif (!['easy', 'medium', 'hard'].includes(difficulty)) return fail(\"Zorluk 'easy', 'medium' veya 'hard' olmalıdır.\");\nreturn [{\n  json: {\n    valid: true,\n    user_id: $('Test: oturum').first().json.user_id,\n    note_id: s(b.note_id) || '-',\n    count,\n    difficulty,\n    model: s(b.model) || null,\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "e24fb2d4-7d61-4e15-b790-8efb203ae7e9"
+      "id": "3890d952-29b3-4a75-af45-1387d6e55f84"
     },
     {
       "name": "Test: istek geçerli mi?",
@@ -188,7 +188,7 @@
           },
           "conditions": [
             {
-              "id": "6695939b-6864-41a9-bd1f-09f7696c10de",
+              "id": "de45ac4b-3dca-49b7-8995-ef297ccab6c9",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -202,7 +202,7 @@
         },
         "options": {}
       },
-      "id": "b31190d5-2069-498a-a03f-016f85388905"
+      "id": "92756dc4-a936-4133-b167-18318b95150f"
     },
     {
       "name": "400 Geçersiz istek",
@@ -227,7 +227,7 @@
           }
         }
       },
-      "id": "780de241-d802-4992-b1ae-23d05e39808d"
+      "id": "b5bebb0c-05d7-4974-a2f4-934367b3568b"
     },
     {
       "name": "Test: not",
@@ -240,7 +240,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "mongoDb": {
-          "id": "BURADAKİ_KİMLİK",
+          "id": "FgLEfSazu2hgNgcG",
           "name": "Asistan Mongo"
         }
       },
@@ -255,7 +255,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "055d72a0-4ffe-4f7f-8908-359b560e6979"
+      "id": "5caefecb-a074-4f4b-b8d9-b79b05a7c2f6"
     },
     {
       "name": "Test: not var mı?",
@@ -274,7 +274,7 @@
           },
           "conditions": [
             {
-              "id": "94281372-4427-44df-8fe9-43b9057535b7",
+              "id": "20cbc85c-ee46-49ed-8a94-947a553e6094",
               "leftValue": "={{ !!$json.id }}",
               "rightValue": "",
               "operator": {
@@ -288,7 +288,7 @@
         },
         "options": {}
       },
-      "id": "5d772687-9b6b-4c0b-a08b-a40aebd85906"
+      "id": "67471218-c56b-41a6-8792-bb6e1ebda4d0"
     },
     {
       "name": "404 Not yok",
@@ -313,7 +313,7 @@
           }
         }
       },
-      "id": "a4996f2e-bfac-46d9-8143-6f9d28a865a9"
+      "id": "a55500c9-15c9-4df8-bb00-e6ebc2fc03a3"
     },
     {
       "name": "Test: prompt hazırla",
@@ -324,9 +324,9 @@
         -220
       ],
       "parameters": {
-        "jsCode": "// Test üretimi için Ollama isteğini hazırlar. Şema, case dokümanındaki yapı + \"topic\".\nconst n = $('Test: not').first().json;\nconst r = $('Test: istek').first().json;\nconst level = {\n  easy: 'kolay (temel tanımlar ve kavramlar)',\n  medium: 'orta (kavramları anlama ve karşılaştırma)',\n  hard: 'zor (uygulama, analiz ve çıkarım)',\n}[r.difficulty];\nconst schema = {\n  type: 'object',\n  properties: {\n    questions: {\n      type: 'array', minItems: r.count, maxItems: r.count,\n      items: {\n        type: 'object',\n        properties: {\n          question: { type: 'string' },\n          options: { type: 'array', items: { type: 'string' }, minItems: 4, maxItems: 4 },\n          correct_answer: { type: 'string' },\n          explanation: { type: 'string' },\n          topic: { type: 'string' },\n        },\n        required: ['question', 'options', 'correct_answer', 'explanation', 'topic'],\n      },\n    },\n  },\n  required: ['questions'],\n};\nconst system = [\n  'Sen üniversite öğrencileri için ders notlarından çoktan seçmeli test hazırlayan bir öğretim asistanısın.',\n  'KURALLAR:',\n  '1. YALNIZCA Türkçe yaz. Çince, Japonca, Korece veya Kiril alfabesinden tek bir karakter bile kullanma.',\n  `2. Tam olarak ${r.count} soru üret. Zorluk düzeyi: ${level}.`,\n  '3. Sorular YALNIZCA verilen ders notundaki bilgilere dayansın.',\n  '4. Her sorunun tam 4 farklı seçeneği olsun ve yalnızca biri doğru olsun. Seçeneklerin başına \"A)\" gibi harf koyma.',\n  '5. \"correct_answer\", doğru seçeneğin metniyle BİREBİR aynı olsun.',\n  '6. \"explanation\", doğru cevabın neden doğru olduğunu 1-2 cümleyle açıklasın.',\n  '7. \"topic\", sorunun ölçtüğü konuyu 1-4 kelimeyle belirtsin (ör. \"Widget türleri\").',\n  '8. Aynı soruyu tekrarlama; \"Hepsi\" veya \"Hiçbiri\" seçeneğini kullanma.',\n].join('\\n');\nreturn [{\n  json: {\n    body: {\n      model: r.model,\n      stream: false,\n      format: schema,\n      options: { temperature: 0.4, num_ctx: 8192 },\n      messages: [\n        { role: 'system', content: system },\n        { role: 'user', content: `Ders notu başlığı: ${n.title}\\n\\nDers notu:\\n${n.content}` },\n      ],\n    },\n  },\n}];\n"
+        "jsCode": "// Test üretimi için Ollama isteğini hazırlar. Şema, case dokümanındaki yapı + \"topic\".\nconst n = $('Test: not').first().json;\nconst r = $('Test: istek').first().json;\nconst level = {\n  easy: 'kolay (temel tanımlar ve kavramlar)',\n  medium: 'orta (kavramları anlama ve karşılaştırma)',\n  hard: 'zor (uygulama, analiz ve çıkarım)',\n}[r.difficulty];\n// Model birkaç fazla (yedek) soru üretir; kurallara uymayan sorular kodda elenir.\nconst ask = r.count + 2;\nconst schema = {\n  type: 'object',\n  properties: {\n    questions: {\n      type: 'array', minItems: ask, maxItems: ask,\n      items: {\n        type: 'object',\n        properties: {\n          question: { type: 'string' },\n          options: { type: 'array', items: { type: 'string' }, minItems: 4, maxItems: 4 },\n          correct_answer: { type: 'string' },\n          explanation: { type: 'string' },\n          topic: { type: 'string' },\n        },\n        required: ['question', 'options', 'correct_answer', 'explanation', 'topic'],\n      },\n    },\n  },\n  required: ['questions'],\n};\nconst system = [\n  'Sen üniversite öğrencileri için ders notlarından çoktan seçmeli test hazırlayan bir öğretim asistanısın.',\n  'KURALLAR:',\n  '1. YALNIZCA Türkçe yaz. Çince, Japonca, Korece veya Kiril alfabesinden tek bir karakter bile kullanma.',\n  `2. Tam olarak ${ask} soru üret. Zorluk düzeyi: ${level}.`,\n  '3. Sorular YALNIZCA verilen ders notundaki bilgilere dayansın.',\n  '4. Her sorunun tam 4 farklı seçeneği olsun ve yalnızca biri doğru olsun. Seçeneklerin başına \"A)\" gibi harf koyma.',\n  '5. \"correct_answer\", doğru seçeneğin metniyle BİREBİR aynı olsun.',\n  '6. \"explanation\", doğru cevabın neden doğru olduğunu 1-2 cümleyle açıklasın.',\n  '7. \"topic\", sorunun ölçtüğü konuyu 1-4 kelimeyle belirtsin (ör. \"Widget türleri\").',\n  '8. Aynı soruyu tekrarlama; \"Hepsi\" veya \"Hiçbiri\" seçeneğini kullanma.',\n  '9. Doğru cevabı soru metninin içinde verme; yanlış seçenekler de akla yatkın olsun.',\n  '10. Soruları dil bilgisi açısından düzgün, açık ve tek anlamlı yaz.',\n].join('\\n');\n// Otomatik model seçimi: formül yoğun / sayısal notlar → akıl yürütme modeli, diğerleri → Türkçe anlatım modeli\nconst low = n.content.toLocaleLowerCase('tr');\nconst symbolRatio = (n.content.match(/[=^+*/×÷√∫<>]/g) || []).length / Math.max(n.content.length, 1);\nconst hits = ['türev', 'integral', 'limit', 'denklem', 'matris', 'olasılık', 'fonksiyon', 'formül', 'algoritma', 'kod']\n  .filter((w) => low.includes(w)).length;\nconst route = symbolRatio > 0.01 || hits >= 2 ? 'reasoning' : 'text';\n\nreturn [{\n  json: {\n    route,\n    body: {\n      model: r.model,\n      stream: false,\n      format: schema,\n      options: { temperature: 0.4, num_ctx: 8192 },\n      messages: [\n        { role: 'system', content: system },\n        { role: 'user', content: `Ders notu başlığı: ${n.title}\\n\\nDers notu:\\n${n.content}` },\n      ],\n    },\n  },\n}];\n"
       },
-      "id": "cd4fe434-7de9-4ec5-94b2-52d891f471f0"
+      "id": "0cbda07f-4f7a-49fd-9e57-0369566164f4"
     },
     {
       "name": "Test: belge",
@@ -340,7 +340,7 @@
         "jsCode": "// Test belgesini (doğru cevaplarla) ve istemci yanıtını (doğru cevap ve açıklama OLMADAN) hazırlar.\nconst crypto = require('crypto');\nconst n = $('Test: not').first().json;\nconst req = $('Test: istek').first().json;\nconst v = $input.first().json;\nconst quiz = {\n  id: crypto.randomUUID(),\n  user_id: req.user_id,\n  note_id: n.id,\n  course_id: n.course_id,\n  title: `${n.title} — Test`,\n  model: v.model || 'bilinmiyor',\n  difficulty: req.difficulty,\n  questions: v.questions.map((q, i) => ({ id: crypto.randomUUID(), position: i + 1, ...q })),\n  created_at: new Date().toISOString(),\n};\nconst response = {\n  ok: true,\n  data: {\n    quiz_id: quiz.id, title: quiz.title, model: quiz.model, difficulty: quiz.difficulty,\n    questions: quiz.questions.map((q) => ({\n      id: q.id, position: q.position, question: q.question, options: q.options, topic: q.topic,\n    })),\n  },\n};\nreturn [{ json: { ...quiz, response } }];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "1526324f-68bc-4774-adec-35c9676412e5"
+      "id": "95eb0eb3-2cd6-446a-925b-c32a478c4d6a"
     },
     {
       "name": "Test: Ollama",
@@ -356,12 +356,12 @@
         "url": "={{ $env.OLLAMA_URL }}/api/chat",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify(Object.assign({}, $('Test: prompt hazırla').first().json.body, { model: $('Test: prompt hazırla').first().json.body.model || $env.LLM_MODEL })) }}",
+        "jsonBody": "={{ JSON.stringify(Object.assign({}, $('Test: prompt hazırla').first().json.body, { model: $runIndex >= 2 ? (($('Test: prompt hazırla').first().json.body.model || ($('Test: prompt hazırla').first().json.route === 'reasoning' ? ($env.LLM_MODEL_REASONING || $env.LLM_MODEL) : $env.LLM_MODEL)) === $env.LLM_MODEL ? ($env.LLM_MODEL_REASONING || $env.LLM_MODEL) : $env.LLM_MODEL) : ($('Test: prompt hazırla').first().json.body.model || ($('Test: prompt hazırla').first().json.route === 'reasoning' ? ($env.LLM_MODEL_REASONING || $env.LLM_MODEL) : $env.LLM_MODEL)) })) }}",
         "options": {
           "timeout": 120000
         }
       },
-      "id": "99ebd9ba-aa93-4c4c-8127-a018ddbb5c57"
+      "id": "c611ce9b-a008-4f1c-a0c9-3864dbe7589e"
     },
     {
       "name": "Test: yanıtı doğrula",
@@ -372,10 +372,10 @@
         -220
       ],
       "parameters": {
-        "jsCode": "// Model çıktısını case dokümanındaki şemaya göre doğrular, correct_answer'ı correct_index'e çevirir\n// ve şıkları karıştırır (modeller doğru cevabı hep aynı sıraya koyma eğilimindedir).\nconst crypto = require('crypto');\nconst r = $input.first().json;\nconst req = $('Test: istek').first().json;\nconst raw = (r.message && typeof r.message.content === 'string') ? r.message.content : '';\nconst FOREIGN = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯Ѐ-ӿ]/;\nconst clean = (v) => String(v ?? '').trim();\nconst noLetter = (v) => clean(v).replace(/^[A-Da-d][).:-]\\s+/, '');\nconst tr = (v) => v.toLocaleLowerCase('tr');\n\nconst check = () => {\n  let j;\n  try { j = JSON.parse(raw.trim().replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/, '')); }\n  catch (e) { return { problem: 'geçersiz JSON' }; }\n  const qs = j && Array.isArray(j.questions) ? j.questions : null;\n  if (!qs) return { problem: '\"questions\" dizisi yok' };\n  if (qs.length < req.count) return { problem: `${qs.length} soru geldi, ${req.count} istendi` };\n\n  const out = [];\n  for (const [i, q] of qs.slice(0, req.count).entries()) {\n    const no = i + 1;\n    const question = clean(q && q.question);\n    const options = Array.isArray(q && q.options) ? q.options.map(noLetter) : [];\n    const answer = noLetter(q && q.correct_answer);\n    const explanation = clean(q && q.explanation);\n    const topic = clean(q && q.topic).slice(0, 100);\n    if (!question) return { problem: `${no}. soru boş` };\n    if (options.length !== 4 || options.some((o) => !o)) return { problem: `${no}. soruda 4 dolu seçenek yok` };\n    if (new Set(options.map(tr)).size !== 4) return { problem: `${no}. soruda tekrar eden seçenek var` };\n    let ci = options.indexOf(answer);\n    if (ci < 0) ci = options.map(tr).indexOf(tr(answer));\n    if (ci < 0) return { problem: `${no}. sorunun doğru cevabı seçeneklerde yok` };\n    if (!explanation) return { problem: `${no}. soruda açıklama yok` };\n    if (!topic) return { problem: `${no}. soruda konu yok` };\n    out.push({ question, options, correct_index: ci, explanation, topic });\n  }\n  if (new Set(out.map((q) => tr(q.question))).size !== out.length) return { problem: 'tekrar eden soru var' };\n  if (FOREIGN.test(JSON.stringify(out))) return { problem: 'Türkçe dışı karakter' };\n\n  // Şıkları karıştır\n  for (const q of out) {\n    const correct = q.options[q.correct_index];\n    for (let k = q.options.length - 1; k > 0; k--) {\n      const m = crypto.randomInt(k + 1);\n      [q.options[k], q.options[m]] = [q.options[m], q.options[k]];\n    }\n    q.correct_index = q.options.indexOf(correct);\n  }\n  return { questions: out };\n};\n\nconst res = check();\nreturn [{\n  json: {\n    valid: !res.problem, problem: res.problem || null, attempt: $runIndex + 1,\n    questions: res.questions || null, model: r.model || null,\n  },\n}];\n"
+        "jsCode": "// Model çıktısını case dokümanındaki şemaya göre doğrular, correct_answer'ı correct_index'e çevirir\n// ve şıkları karıştırır (modeller doğru cevabı hep aynı sıraya koyma eğilimindedir).\nconst crypto = require('crypto');\nconst r = $input.first().json;\nconst req = $('Test: istek').first().json;\nconst raw = (r.message && typeof r.message.content === 'string') ? r.message.content : '';\nconst FOREIGN = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯Ѐ-ӿ]/;\nconst clean = (v) => String(v ?? '').trim();\nconst noLetter = (v) => clean(v).replace(/^[A-Da-d][).:-]\\s+/, '');\nconst tr = (v) => v.toLocaleLowerCase('tr');\n\nconst check = () => {\n  let j;\n  try { j = JSON.parse(raw.trim().replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/, '')); }\n  catch (e) { return { problem: 'geçersiz JSON' }; }\n  const qs = j && Array.isArray(j.questions) ? j.questions : null;\n  if (!qs) return { problem: '\"questions\" dizisi yok' };\n  // Her soru tek tek denetlenir; kurala uymayan soru elenir (model yedek sorular üretir).\n  // İstenen sayıda geçerli soru kalırsa test kabul edilir.\n  const out = [];\n  const rejected = [];\n  const seen = new Set();\n  for (const [i, q] of qs.entries()) {\n    if (out.length >= req.count) break;\n    const no = i + 1;\n    const question = clean(q && q.question);\n    const options = Array.isArray(q && q.options) ? q.options.map(noLetter) : [];\n    const answer = noLetter(q && q.correct_answer);\n    const explanation = clean(q && q.explanation);\n    const topic = clean(q && q.topic).slice(0, 100);\n    const why = (() => {\n      if (!question) return 'boş soru';\n      if (options.length !== 4 || options.some((o) => !o)) return '4 dolu seçenek yok';\n      if (new Set(options.map(tr)).size !== 4) return 'tekrar eden seçenek';\n      if (!explanation) return 'açıklama yok';\n      if (!topic) return 'konu yok';\n      if (seen.has(tr(question))) return 'tekrar eden soru';\n      if (FOREIGN.test(question + options.join('') + explanation + topic)) return 'Türkçe dışı karakter';\n      return null;\n    })();\n    let ci = options.indexOf(answer);\n    if (ci < 0) ci = options.map(tr).indexOf(tr(answer));\n    const problem = why || (ci < 0 ? 'doğru cevap seçeneklerde yok'\n      : (options[ci].length >= 4 && tr(question).includes(tr(options[ci])) ? 'cevap soru metninde' : null));\n    if (problem) { rejected.push(`${no}. soru: ${problem}`); continue; }\n    seen.add(tr(question));\n    out.push({ question, options, correct_index: ci, explanation, topic });\n  }\n  if (out.length < req.count) {\n    return { problem: `${out.length} geçerli soru (${req.count} gerekli); elenen: ${rejected.join('; ') || 'yok'}` };\n  }\n\n  // Doğru cevap konumlarını DENGELİ dağıt: her 4 soruda A/B/C/D birer kez (sırası rastgele).\n  // Böylece \"doğru cevap hep A\" gibi bir örüntü oluşamaz; yanlış şıklar da karıştırılır.\n  const shuffle = (a) => { for (let k = a.length - 1; k > 0; k--) { const m = crypto.randomInt(k + 1); [a[k], a[m]] = [a[m], a[k]]; } return a; };\n  let slots = [];\n  while (slots.length < out.length) slots.push(...shuffle([0, 1, 2, 3]));\n  slots = shuffle(slots.slice(0, out.length));\n  out.forEach((q, i) => {\n    const correct = q.options[q.correct_index];\n    const others = shuffle(q.options.filter((_, k) => k !== q.correct_index));\n    others.splice(slots[i], 0, correct);\n    q.options = others;\n    q.correct_index = slots[i];\n  });\n  return { questions: out };\n};\n\nconst res = check();\nreturn [{\n  json: {\n    valid: !res.problem, problem: res.problem || null, attempt: $runIndex + 1,\n    questions: res.questions || null, model: r.model || null,\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "9fb73013-d24d-4051-9d67-14b5cf8956c6"
+      "id": "639d6727-42a9-43da-b6dc-3be162a28044"
     },
     {
       "name": "Test: yanıt geçerli mi?",
@@ -394,7 +394,7 @@
           },
           "conditions": [
             {
-              "id": "c5851445-9629-4973-a116-39ba7dd86e71",
+              "id": "ed807278-11ab-4d25-bfa7-ae8269ac20df",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -408,7 +408,7 @@
         },
         "options": {}
       },
-      "id": "1dd88123-f012-44a8-84f8-8ae30bb486e3"
+      "id": "d8ad4415-ec3f-4732-8f92-13a41c487dfe"
     },
     {
       "name": "Test: tekrar denensin mi?",
@@ -427,7 +427,7 @@
           },
           "conditions": [
             {
-              "id": "b6af1fa7-d3ef-47a5-a8b4-ede764f0cf1b",
+              "id": "be30b793-127d-4985-b98b-0085c67ee004",
               "leftValue": "={{ $json.attempt }}",
               "rightValue": 3,
               "operator": {
@@ -440,7 +440,7 @@
         },
         "options": {}
       },
-      "id": "44d72b34-6a75-4bb2-93ea-bd37a6c1953c"
+      "id": "0fb9f614-6074-479a-9d97-bc62d8bcde17"
     },
     {
       "name": "Test: 503",
@@ -465,7 +465,7 @@
           }
         }
       },
-      "id": "aaf156a0-da46-45f4-a7db-b15cd0cfe70a"
+      "id": "057e0860-32e0-4d5e-89e7-b2bf6f174f36"
     },
     {
       "name": "Test: 502",
@@ -490,7 +490,7 @@
           }
         }
       },
-      "id": "26a0c64d-9a85-4be3-ab03-81dddc534f85"
+      "id": "b7483150-322a-41e5-bf63-58fdbf72a6a6"
     },
     {
       "name": "Test: kaydet",
@@ -503,7 +503,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "mongoDb": {
-          "id": "BURADAKİ_KİMLİK",
+          "id": "FgLEfSazu2hgNgcG",
           "name": "Asistan Mongo"
         }
       },
@@ -515,7 +515,7 @@
           "dateFields": "created_at"
         }
       },
-      "id": "2e22fed9-f4cd-4451-8ebc-be20d512b70c"
+      "id": "99cc4a61-eaad-4708-aacc-da22871aa9fa"
     },
     {
       "name": "200 Test",
@@ -540,7 +540,7 @@
           }
         }
       },
-      "id": "793525ce-ffe3-4958-9db0-7f7705ba6b96"
+      "id": "208ede0d-938c-4105-8928-0122b0571ab5"
     }
   ],
   "connections": {

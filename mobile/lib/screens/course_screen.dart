@@ -168,7 +168,7 @@ class _CourseScreenState extends State<CourseScreen> {
             EmptyView(
               icon: Icons.description_outlined,
               title: 'Bu derste henüz not yok',
-              subtitle: 'Not metnini yapıştır veya bir TXT dosyası seç; ardından özet alıp test oluşturabilirsin.',
+              subtitle: 'Not metnini yapıştır veya bir TXT ya da PDF dosyası seç; ardından özet alıp test oluşturabilirsin.',
               action: FilledButton.icon(
                 onPressed: _addNote,
                 icon: const Icon(Icons.note_add_rounded),

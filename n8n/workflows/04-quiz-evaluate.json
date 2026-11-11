@@ -14,7 +14,7 @@
         "width": 1000,
         "height": 200
       },
-      "id": "20ef34ef-a0c1-43c5-b67a-1cc7c6e5c377"
+      "id": "025bcc7b-b39a-4aa7-9dc4-7b78a4997873"
     },
     {
       "name": "500 Sunucu hatası",
@@ -39,7 +39,7 @@
           }
         }
       },
-      "id": "32303cfc-699c-4dcd-b181-0819c87f94c0"
+      "id": "2cc347fc-12d0-428b-be8b-e7a10fc39d5f"
     },
     {
       "name": "POST /quizzes/submit",
@@ -49,14 +49,14 @@
         0,
         0
       ],
-      "webhookId": "9055c427-2fcc-4a63-b439-cccccbe5a938",
+      "webhookId": "2a5c9e4d-431b-4242-8f8a-2bd1fb69e998",
       "parameters": {
         "httpMethod": "POST",
         "path": "quizzes/submit",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "5618e37e-f2f1-4a00-8848-4f10f6bbbe8d"
+      "id": "3c891644-0170-45e8-a92a-ac5ebca87288"
     },
     {
       "name": "Teslim: token özeti",
@@ -70,7 +70,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /quizzes/submit').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "3d0df659-b5cf-41f3-ba9e-5ba914875fd2"
+      "id": "b2eea9e4-5041-4278-9c84-0758e7c9998a"
     },
     {
       "name": "Teslim: oturum",
@@ -83,7 +83,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "mongoDb": {
-          "id": "BURADAKİ_KİMLİK",
+          "id": "FgLEfSazu2hgNgcG",
           "name": "Asistan Mongo"
         }
       },
@@ -97,7 +97,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "f35c87e6-b24b-4f28-996f-a19c6fd0bd80"
+      "id": "269c4d41-93b0-43d7-adb9-fa8bf06996ba"
     },
     {
       "name": "Teslim: oturum geçerli mi?",
@@ -116,7 +116,7 @@
           },
           "conditions": [
             {
-              "id": "3f25cf12-c461-4edb-9803-cbd9fe8ebb64",
+              "id": "cbdb4138-4c65-46ee-8f8d-d2bebdad0270",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -130,7 +130,7 @@
         },
         "options": {}
       },
-      "id": "6653d373-25e7-4e69-b047-e108076a9924"
+      "id": "f5036f7e-d4c2-448d-9a6e-9790ba60acc5"
     },
     {
       "name": "Teslim: 401",
@@ -155,7 +155,7 @@
           }
         }
       },
-      "id": "a69d421f-6e5a-46cb-af90-691f074f6220"
+      "id": "3bcfe98e-a306-400f-8376-13275afa2d0a"
     },
     {
       "name": "Teslim: istek",
@@ -169,7 +169,7 @@
         "jsCode": "// Test teslim isteğini doğrular.\nconst b = $('POST /quizzes/submit').first().json.body || {};\nconst s = (v) => (v === null || v === undefined ? '' : String(v).trim());\nif (!Array.isArray(b.answers)) {\n  return [{ json: { valid: false, response: { ok: false, error: { code: 'VALIDATION_ERROR', message: '\"answers\" bir dizi olmalıdır.' } } } }];\n}\nreturn [{\n  json: {\n    valid: true,\n    user_id: $('Teslim: oturum').first().json.user_id,\n    quiz_id: s(b.quiz_id) || '-',\n    answers: b.answers,\n    model: s(b.model) || null,\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "7a283554-b24d-4463-9228-64a2c4b76751"
+      "id": "08e73edb-5711-483f-bbd4-7796436824d6"
     },
     {
       "name": "Teslim: istek geçerli mi?",
@@ -188,7 +188,7 @@
           },
           "conditions": [
             {
-              "id": "f2c1207d-a1e6-4731-90f5-12b21892c100",
+              "id": "d790ddd4-7e9c-4f9e-a580-1ee7fdeab3e0",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -202,7 +202,7 @@
         },
         "options": {}
       },
-      "id": "4588d6c8-f6b4-471d-b4d6-63412fbe3dc5"
+      "id": "2e9e0955-c938-4814-b339-9765b97ad0e1"
     },
     {
       "name": "400 Geçersiz cevaplar",
@@ -227,7 +227,7 @@
           }
         }
       },
-      "id": "ec4855de-21e8-4f81-a793-9896fe5e3baf"
+      "id": "fd4b58b5-a205-44fe-b792-349eda53c4b5"
     },
     {
       "name": "Teslim: test",
@@ -240,7 +240,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "mongoDb": {
-          "id": "BURADAKİ_KİMLİK",
+          "id": "FgLEfSazu2hgNgcG",
           "name": "Asistan Mongo"
         }
       },
@@ -254,7 +254,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "7d19b5a9-93a9-4a61-9124-df6ea6a0530e"
+      "id": "61b37f59-c58f-4af9-88ad-9dc820a7d148"
     },
     {
       "name": "Teslim: test var mı?",
@@ -273,7 +273,7 @@
           },
           "conditions": [
             {
-              "id": "54b6ee21-2271-4475-bafd-f60719db4332",
+              "id": "ba59b0d0-a6ce-42f4-9d5a-1eabdb222c60",
               "leftValue": "={{ !!$json.id }}",
               "rightValue": "",
               "operator": {
@@ -287,7 +287,7 @@
         },
         "options": {}
       },
-      "id": "9edba46a-0ad2-458b-87d9-c28fafe95c1a"
+      "id": "2be45a67-9331-4574-b451-540abf0c6b57"
     },
     {
       "name": "404 Test yok",
@@ -312,7 +312,7 @@
           }
         }
       },
-      "id": "00a0132b-9327-4f5d-944e-4b75f6403d19"
+      "id": "7112b462-65f6-44c7-a602-b02c18aabb0e"
     },
     {
       "name": "Teslim: önceki teslim",
@@ -325,7 +325,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "mongoDb": {
-          "id": "BURADAKİ_KİMLİK",
+          "id": "FgLEfSazu2hgNgcG",
           "name": "Asistan Mongo"
         }
       },
@@ -340,7 +340,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "c6294d94-1e07-4c88-b69c-2de592eb6aae"
+      "id": "03bab3c2-8a61-4a49-a9e5-e82f4122a508"
     },
     {
       "name": "Teslim: daha önce teslim edildi mi?",
@@ -359,7 +359,7 @@
           },
           "conditions": [
             {
-              "id": "dc790b75-03dc-4c6d-93c4-f370ac2100a5",
+              "id": "f8ac2bee-8680-4bab-9b01-31c774b2fa5f",
               "leftValue": "={{ !!$json.id }}",
               "rightValue": "",
               "operator": {
@@ -373,7 +373,7 @@
         },
         "options": {}
       },
-      "id": "de345ff4-b3fc-409f-b176-48d6c0c61976"
+      "id": "ffb9b9cf-a29a-4068-a13f-5e301a22776b"
     },
     {
       "name": "409 Zaten teslim edildi",
@@ -398,42 +398,99 @@
           }
         }
       },
-      "id": "dcc162a4-f03f-4641-bfce-6cdff0eecefe"
+      "id": "7dea0331-350c-414b-8d0d-d9690043a20b"
     },
     {
       "name": "Teslim: puanla",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2200,
+        2640,
         -300
       ],
       "parameters": {
-        "jsCode": "// Puanlama KODLA yapılır (model değil). Sonra öneri için Ollama isteği hazırlanır.\nconst crypto = require('crypto');\nconst quiz = $('Teslim: test').first().json;\nconst req = $('Teslim: istek').first().json;\n\nconst given = new Map();\nfor (const a of req.answers) {\n  if (a && a.question_id !== null && a.question_id !== undefined) given.set(String(a.question_id), a.selected_index);\n}\nconst questions = [...quiz.questions].sort((a, b) => (a.position || 0) - (b.position || 0));\nconst graded = questions.map((q) => {\n  let sel = given.get(q.id);\n  sel = sel === null || sel === undefined || sel === '' ? null : Number(sel);\n  if (!(Number.isInteger(sel) && sel >= 0 && sel <= 3)) sel = null; // boş / geçersiz → yanlış\n  return { q, sel, ok: sel === q.correct_index };\n});\nconst score = graded.filter((g) => g.ok).length;\nconst total = graded.length;\nconst percent = Math.round((100 * score) / total);\n\n// Zayıf konular: yanlış sayısına göre sıralı\nconst counts = {};\nfor (const g of graded) if (!g.ok) counts[g.q.topic] = (counts[g.q.topic] || 0) + 1;\nconst weak_topics = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([t]) => t);\n\nconst wrong = graded.filter((g) => !g.ok);\nconst detail = wrong.length\n  ? wrong.map((g, i) => [\n      `${i + 1}. [${g.q.topic}] ${g.q.question}`,\n      `   Öğrencinin cevabı: ${g.sel === null ? '(boş bırakıldı)' : g.q.options[g.sel]}`,\n      `   Doğru cevap: ${g.q.options[g.q.correct_index]}`,\n      `   Açıklama: ${g.q.explanation}`,\n    ].join('\\n')).join('\\n')\n  : 'Öğrenci tüm soruları doğru yanıtladı.';\n\nconst system = [\n  'Sen öğrencilere test sonuçlarına göre kişisel çalışma önerisi veren bir öğretim asistanısın.',\n  'KURALLAR:',\n  '1. YALNIZCA Türkçe yaz. Çince, Japonca, Korece veya Kiril alfabesinden tek bir karakter bile kullanma.',\n  '2. Öğrenciye doğrudan \"sen\" diye hitap et; destekleyici ama net ol.',\n  '3. Yanlış yapılan konuları adıyla an ve her biri için somut bir çalışma adımı öner.',\n  '4. 3-5 cümle yaz; başlık veya madde işareti kullanma.',\n  '5. Tüm sorular doğruysa tebrik et ve bir sonraki adım için kısa bir öneri ver.',\n].join('\\n');\n\nreturn [{\n  json: {\n    attempt: {\n      id: crypto.randomUUID(), quiz_id: quiz.id, user_id: req.user_id, course_id: quiz.course_id,\n      score, total, percent,\n      answers: graded.map((g) => ({ question_id: g.q.id, selected_index: g.sel, is_correct: g.ok })),\n      created_at: new Date().toISOString(),\n    },\n    results: graded.map((g) => ({\n      question_id: g.q.id, selected_index: g.sel, correct_index: g.q.correct_index,\n      is_correct: g.ok, explanation: g.q.explanation,\n    })),\n    weak_topics,\n    body: {\n      model: req.model,\n      stream: false,\n      options: { temperature: 0.4, num_ctx: 4096 },\n      messages: [\n        { role: 'system', content: system },\n        { role: 'user', content: `Test: ${quiz.title}\\nPuan: ${score}/${total} (%${percent})\\n\\nYanlış yanıtlanan sorular:\\n${detail}` },\n      ],\n    },\n  },\n}];\n"
+        "jsCode": "// Puanlama KODLA yapılır (model değil). Sonra öneri için Ollama isteği hazırlanır.\nconst crypto = require('crypto');\nconst quiz = $('Teslim: test').first().json;\nconst req = $('Teslim: istek').first().json;\n\nconst given = new Map();\nfor (const a of req.answers) {\n  if (a && a.question_id !== null && a.question_id !== undefined) given.set(String(a.question_id), a.selected_index);\n}\nconst questions = [...quiz.questions].sort((a, b) => (a.position || 0) - (b.position || 0));\nconst graded = questions.map((q) => {\n  let sel = given.get(q.id);\n  sel = sel === null || sel === undefined || sel === '' ? null : Number(sel);\n  if (!(Number.isInteger(sel) && sel >= 0 && sel <= 3)) sel = null; // boş / geçersiz → yanlış\n  return { q, sel, ok: sel === q.correct_index };\n});\nconst score = graded.filter((g) => g.ok).length;\nconst total = graded.length;\nconst percent = Math.round((100 * score) / total);\n\n// Zayıf konular: yanlış sayısına göre sıralı\nconst counts = {};\nfor (const g of graded) if (!g.ok) counts[g.q.topic] = (counts[g.q.topic] || 0) + 1;\nconst weak_topics = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([t]) => t);\n\n// ---- Geçmişe dönük analiz: aynı dersin önceki testlerinde bu konularda hata yapıldı mı?\n// Model konu adlarını her testte biraz farklı yazabilir (\"Zincir kuralı\" / \"Zincir Kuralı uygulaması\");\n// bu yüzden küçük harfe çevrilip noktalama atılarak karşılaştırılır ve biri diğerini içeriyorsa aynı sayılır.\nconst norm = (t) => String(t || '').toLocaleLowerCase('tr').replace(/[^\\p{L}\\p{N}\\s]/gu, ' ').replace(/\\s+/g, ' ').trim();\nconst sameTopic = (a, b) => { const x = norm(a); const y = norm(b); return !!x && !!y && (x === y || x.includes(y) || y.includes(x)); };\nconst pastQuizzes = new Map($('Teslim: geçmiş testler').all().map((i) => i.json).filter((d) => d && d.id).map((q) => [q.id, q]));\nconst pastWrongTopics = $('Teslim: geçmiş denemeler').all().map((i) => i.json).filter((d) => d && d.quiz_id)\n  .map((a) => {\n    const q = pastQuizzes.get(a.quiz_id);\n    if (!q || !Array.isArray(q.questions)) return [];\n    const topicOf = new Map(q.questions.map((x) => [x.id, x.topic]));\n    return [...new Set((a.answers || []).filter((x) => !x.is_correct).map((x) => topicOf.get(x.question_id)).filter(Boolean))];\n  });\nconst recurring_topics = weak_topics\n  .map((t) => ({ topic: t, previous: pastWrongTopics.filter((list) => list.some((p) => sameTopic(p, t))).length }))\n  .filter((x) => x.previous > 0)\n  .sort((a, b) => b.previous - a.previous);\n\nconst wrong = graded.filter((g) => !g.ok);\nconst detail = wrong.length\n  ? wrong.map((g, i) => [\n      `${i + 1}. [${g.q.topic}] ${g.q.question}`,\n      `   Öğrencinin cevabı: ${g.sel === null ? '(boş bırakıldı)' : g.q.options[g.sel]}`,\n      `   Doğru cevap: ${g.q.options[g.q.correct_index]}`,\n      `   Açıklama: ${g.q.explanation}`,\n    ].join('\\n')).join('\\n')\n  : 'Öğrenci tüm soruları doğru yanıtladı.';\n\nconst topicList = weak_topics.join(', ');\nconst system = [\n  'Sen öğrencilere test sonuçlarına göre kişisel çalışma önerisi veren bir öğretim asistanısın.',\n  'KURALLAR:',\n  '1. YALNIZCA Türkçe yaz. Çince, Japonca, Korece veya Kiril alfabesinden tek bir karakter bile kullanma.',\n  '2. Selamlama (\"Merhaba\" vb.) ve kapanış cümlesi yazma; doğrudan öneriyle başla.',\n  '3. Öğrenciye \"sen\" diye hitap et; destekleyici ama net ol.',\n  weak_topics.length\n    ? `4. Yanlış yapılan HER konuyu adıyla an (${topicList}) ve her biri için tek bir somut çalışma adımı öner.`\n    : '4. Tüm sorular doğru: kısaca takdir et ve bir sonraki adım için tek bir öneri ver.',\n  '5. Tek paragraf yaz, en fazla 5 cümle; başlık veya madde işareti kullanma.',\n  ...(recurring_topics.length\n    ? ['7. Öğrenci bazı konularda önceki testlerde de hata yapmış: bunu açıkça belirt ve bu konular için farklı bir çalışma yöntemi öner (ör. konu özetini kendi cümlelerinle yazmak, örnek çözmek).']\n    : []),\n  percent >= 80\n    ? '6. Başarı yüksek; kısa bir takdirle başlayabilirsin.'\n    : '6. Puan düşük: \"Tebrikler\" gibi kutlama ifadeleri KULLANMA.',\n].join('\\n');\n\nreturn [{\n  json: {\n    attempt: {\n      id: crypto.randomUUID(), quiz_id: quiz.id, user_id: req.user_id, course_id: quiz.course_id,\n      score, total, percent,\n      answers: graded.map((g) => ({ question_id: g.q.id, selected_index: g.sel, is_correct: g.ok })),\n      created_at: new Date().toISOString(),\n    },\n    results: graded.map((g) => ({\n      question_id: g.q.id, selected_index: g.sel, correct_index: g.q.correct_index,\n      is_correct: g.ok, explanation: g.q.explanation,\n    })),\n    weak_topics,\n    recurring_topics,\n    route: 'text',\n    body: {\n      model: req.model,\n      stream: false,\n      options: { temperature: 0.4, num_ctx: 4096 },\n      messages: [\n        { role: 'system', content: system },\n        { role: 'user', content: `Test: ${quiz.title}\\nPuan: ${score}/${total} (%${percent})\\n\\nYanlış yanıtlanan sorular:\\n${detail}` +\n          (recurring_topics.length\n            ? `\\n\\nGeçmiş: Öğrenci şu konularda önceki testlerde de hata yapmıştı: ${recurring_topics.map((r) => `${r.topic} (önceki ${r.previous} testte)`).join(', ')}.`\n            : '') },\n      ],\n    },\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "1137e77f-2f79-4ac0-8c3d-494ebf4b5c88"
+      "id": "a9bca3c9-4f3b-4e99-b789-ed75104523e2"
+    },
+    {
+      "name": "Teslim: geçmiş denemeler",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        2200,
+        -480
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "FgLEfSazu2hgNgcG",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "quiz_attempts",
+        "query": "={{ JSON.stringify({ user_id: $('Teslim: test').first().json.user_id, course_id: $('Teslim: test').first().json.course_id }) }}",
+        "options": {
+          "limit": 50,
+          "sort": "{\"created_at\": -1}",
+          "projection": "{\"quiz_id\": 1, \"answers\": 1, \"created_at\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "0fccc6b6-a819-44d3-a997-9edb8d82d9d4"
+    },
+    {
+      "name": "Teslim: geçmiş testler",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        2420,
+        -480
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "FgLEfSazu2hgNgcG",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "quizzes",
+        "query": "={{ JSON.stringify({ user_id: $('Teslim: test').first().json.user_id, course_id: $('Teslim: test').first().json.course_id }) }}",
+        "options": {
+          "limit": 60,
+          "projection": "{\"id\": 1, \"questions\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "92c1dc0a-e0ce-4c86-888e-eea1f97b6e0e"
     },
     {
       "name": "Teslim: sonuç",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3320,
+        3760,
         -380
       ],
       "parameters": {
-        "jsCode": "// Sonucu birleştirir. Model geçerli öneri üretemediyse (ya da Ollama kapalıysa)\n// yanlış konulardan kural tabanlı yedek öneri yazılır; puan her durumda döner.\nconst s = $('Teslim: puanla').first().json;\nconst r = $input.first().json || {};\nconst useAi = r.valid === true && !!r.content;\n\nlet text;\nif (useAi) {\n  text = r.content;\n} else if (s.weak_topics.length) {\n  text = `Şu konularda eksiğin görünüyor: ${s.weak_topics.join(', ')}. ` +\n    'Bu konulara ait ders notlarını yeniden oku ve yanlış yaptığın soruların açıklamalarını dikkatle incele. ' +\n    'Ardından aynı nottan yeni bir test oluşturarak kendini tekrar dene.';\n} else {\n  text = 'Tebrikler, tüm soruları doğru yanıtladın! Bilgini pekiştirmek için daha zor seviyede yeni bir test ' +\n    'oluşturabilir ya da bir sonraki konuya geçebilirsin.';\n}\nconst attempt = { ...s.attempt, recommendation: text, recommendation_source: useAi ? 'ai' : 'fallback' };\nreturn [{\n  json: {\n    ...attempt,\n    response: {\n      ok: true,\n      data: {\n        attempt_id: attempt.id, score: attempt.score, total: attempt.total, percent: attempt.percent,\n        results: s.results, weak_topics: s.weak_topics,\n        recommendation: text, recommendation_source: attempt.recommendation_source,\n      },\n    },\n  },\n}];\n"
+        "jsCode": "// Sonucu birleştirir. Model geçerli öneri üretemediyse (ya da Ollama kapalıysa)\n// yanlış konulardan kural tabanlı yedek öneri yazılır; puan her durumda döner.\nconst s = $('Teslim: puanla').first().json;\nconst r = $input.first().json || {};\nconst useAi = r.valid === true && !!r.content;\n\nlet text;\nif (useAi) {\n  text = r.content;\n} else if (s.weak_topics.length) {\n  const rec = (s.recurring_topics || []).map((r) => r.topic);\n  text = `Şu konularda eksiğin görünüyor: ${s.weak_topics.join(', ')}. ` +\n    (rec.length ? `Özellikle ${rec.join(', ')} konusunda önceki testlerde de hata yaptın; bu konuya ekstra zaman ayır ve birkaç örneği kendin çöz. ` : '') +\n    'Bu konulara ait ders notlarını yeniden oku ve yanlış yaptığın soruların açıklamalarını dikkatle incele. ' +\n    'Ardından aynı nottan yeni bir test oluşturarak kendini tekrar dene.';\n} else {\n  text = 'Tebrikler, tüm soruları doğru yanıtladın! Bilgini pekiştirmek için daha zor seviyede yeni bir test ' +\n    'oluşturabilir ya da bir sonraki konuya geçebilirsin.';\n}\n// Yedek öneri neden kullanıldı? (teşhis için yanıtta döner)\nconst issue = useAi ? null : (r.problem || (r.error ? 'yapay zekâya ulaşılamadı' : 'bilinmiyor'));\nconst attempt = { ...s.attempt, recommendation: text, recommendation_source: useAi ? 'ai' : 'fallback' };\nreturn [{\n  json: {\n    ...attempt,\n    response: {\n      ok: true,\n      data: {\n        attempt_id: attempt.id, score: attempt.score, total: attempt.total, percent: attempt.percent,\n        results: s.results, weak_topics: s.weak_topics, recurring_topics: s.recurring_topics || [],\n        recommendation: text, recommendation_source: attempt.recommendation_source,\n        recommendation_issue: issue,\n      },\n    },\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "fee24377-2fea-4607-8f16-6e1af329b1e8"
+      "id": "f4b22ad4-9495-4384-9246-666e4a6f8469"
     },
     {
       "name": "Öneri: Ollama",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2420,
+        2860,
         -300
       ],
       "onError": "continueErrorOutput",
@@ -442,33 +499,33 @@
         "url": "={{ $env.OLLAMA_URL }}/api/chat",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify(Object.assign({}, $('Teslim: puanla').first().json.body, { model: $('Teslim: puanla').first().json.body.model || $env.LLM_MODEL })) }}",
+        "jsonBody": "={{ JSON.stringify(Object.assign({}, $('Teslim: puanla').first().json.body, { model: $runIndex >= 2 ? (($('Teslim: puanla').first().json.body.model || ($('Teslim: puanla').first().json.route === 'reasoning' ? ($env.LLM_MODEL_REASONING || $env.LLM_MODEL) : $env.LLM_MODEL)) === $env.LLM_MODEL ? ($env.LLM_MODEL_REASONING || $env.LLM_MODEL) : $env.LLM_MODEL) : ($('Teslim: puanla').first().json.body.model || ($('Teslim: puanla').first().json.route === 'reasoning' ? ($env.LLM_MODEL_REASONING || $env.LLM_MODEL) : $env.LLM_MODEL)) })) }}",
         "options": {
           "timeout": 120000
         }
       },
-      "id": "26422c61-3d85-496e-94fc-8216cba301fd"
+      "id": "7c2015c9-b1fc-4f22-89da-d3731b60b64b"
     },
     {
       "name": "Öneri: yanıtı doğrula",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2640,
+        3080,
         -300
       ],
       "parameters": {
-        "jsCode": "// Öneri metnini doğrular ($runIndex: deneme sırası).\nconst r = $input.first().json;\nconst content = (r.message && typeof r.message.content === 'string') ? r.message.content.trim() : '';\nconst FOREIGN = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯Ѐ-ӿ]/;\nlet problem = null;\nif (content.length < 40) problem = 'öneri çok kısa';\nelse if (FOREIGN.test(content)) problem = 'Türkçe dışı karakter';\nreturn [{ json: { valid: problem === null, problem, attempt: $runIndex + 1, content, model: r.model || null } }];\n"
+        "jsCode": "// Öneri metnini doğrular ($runIndex: deneme sırası). 3 denemede geçemezse yedek öneri kullanılır.\nconst r = $input.first().json;\nconst s = $('Teslim: puanla').first().json;\nconst content = (r.message && typeof r.message.content === 'string') ? r.message.content.trim() : '';\nconst FOREIGN = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯Ѐ-ӿ]/;\nconst tr = (v) => String(v).toLocaleLowerCase('tr');\nconst text = tr(content);\nconst sentences = content.split(/(?<=[.!?])\\s+/).filter((x) => x.trim()).length;\n\n// Konu anıldı mı? Model ekleri değiştirebilir (\"widget'ların\"), bu yüzden kelime köklerine bakılır.\nconst mentioned = (topic) => {\n  const words = tr(topic).replace(/['’]\\S*/g, '').split(/\\s+/).filter((w) => w.length >= 4);\n  return !words.length || words.some((w) => text.includes(w.slice(0, Math.max(4, w.length - 2))));\n};\n// En az 2 zayıf konu (azsa hepsi) adıyla anılmalı\nconst topics = s.weak_topics.slice(0, 3);\nconst missing = topics.filter((t) => !mentioned(t));\nconst needed = Math.min(2, topics.length);\n\nlet problem = null;\nif (content.length < 40) problem = 'öneri çok kısa';\nelse if (FOREIGN.test(content)) problem = 'Türkçe dışı karakter';\nelse if (/^(merhaba|selam|sevgili)/i.test(content)) problem = 'selamlamayla başlıyor';\nelse if (s.attempt.percent < 80 && /tebrik/i.test(content)) problem = 'düşük puanda tebrik';\nelse if (content.length > 1200 || sentences > 8) problem = `öneri çok uzun (${sentences} cümle, ${content.length} karakter)`;\nelse if (topics.length - missing.length < needed) problem = `zayıf konular anılmadı: ${missing.join(', ')}`;\n\nreturn [{ json: { valid: problem === null, problem, attempt: $runIndex + 1, content, model: r.model || null } }];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "5e989368-fbc7-4207-bb00-f46808a9a9b4"
+      "id": "1f2d1f85-da9e-4669-885c-33786252a430"
     },
     {
       "name": "Öneri: yanıt geçerli mi?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2860,
+        3300,
         -300
       ],
       "parameters": {
@@ -480,7 +537,7 @@
           },
           "conditions": [
             {
-              "id": "e9011394-95dd-4091-937e-cf6da597a2dd",
+              "id": "b61cf52e-8416-4ca9-8c90-cb8fdef144b0",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -494,14 +551,14 @@
         },
         "options": {}
       },
-      "id": "dcb525f2-5e26-431f-a424-5e4067d42584"
+      "id": "24b5d5bf-834c-4218-8b39-c36a3e10bdf3"
     },
     {
       "name": "Öneri: tekrar denensin mi?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        3080,
+        3520,
         -140
       ],
       "parameters": {
@@ -513,7 +570,7 @@
           },
           "conditions": [
             {
-              "id": "942b1669-7772-4e34-bdb2-ae17d46e918e",
+              "id": "2661c0fb-143c-40e6-8aad-de9dca33aa02",
               "leftValue": "={{ $json.attempt }}",
               "rightValue": 3,
               "operator": {
@@ -526,7 +583,7 @@
         },
         "options": {}
       },
-      "id": "72244bdc-feb9-41f4-8efa-44bce7d9080a"
+      "id": "d1ef1889-8f70-4cf5-a4de-d57076557cc3"
     },
     {
       "name": "Teslim: kaydet",
@@ -539,7 +596,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "mongoDb": {
-          "id": "BURADAKİ_KİMLİK",
+          "id": "FgLEfSazu2hgNgcG",
           "name": "Asistan Mongo"
         }
       },
@@ -551,7 +608,7 @@
           "dateFields": "created_at"
         }
       },
-      "id": "7db6e1fd-927f-42a5-90b3-a542e6c93580"
+      "id": "12e2d088-01dc-4265-9418-0519bc5f3e68"
     },
     {
       "name": "409 Eşzamanlı teslim",
@@ -576,7 +633,7 @@
           }
         }
       },
-      "id": "afe9b661-6d8f-4037-baad-d80df9bc77e4"
+      "id": "ec92b716-3819-4ce0-aa91-5f2ddcd89a04"
     },
     {
       "name": "200 Sonuç",
@@ -601,7 +658,7 @@
           }
         }
       },
-      "id": "64a78e8e-2166-457e-9a08-2fb49f050186"
+      "id": "a77ad48a-422d-4f3d-886a-3693aa2f7803"
     }
   ],
   "connections": {
@@ -771,7 +828,43 @@
         ],
         [
           {
+            "node": "Teslim: geçmiş denemeler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: geçmiş denemeler": {
+      "main": [
+        [
+          {
+            "node": "Teslim: geçmiş testler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teslim: geçmiş testler": {
+      "main": [
+        [
+          {
             "node": "Teslim: puanla",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
             "type": "main",
             "index": 0
           }

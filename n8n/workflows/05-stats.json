@@ -1,0 +1,427 @@
+{
+  "name": "05-stats",
+  "nodes": [
+    {
+      "name": "Açıklama",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -300
+      ],
+      "parameters": {
+        "content": "## 05-stats — İstatistik ve geçmişe dönük analiz (bonus)\nTüm test geçmişinden ders bazlı başarı, konu bazlı doğruluk, **tekrarlayan zayıflıklar** (aynı konuda en az 2 ayrı testte hata) ve son 10 test.",
+        "width": 900,
+        "height": 160
+      },
+      "id": "9217f338-e31d-4e6f-a04a-0a20351d0549"
+    },
+    {
+      "name": "500 Sunucu hatası",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1900,
+        300
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'INTERNAL_ERROR', message: \"Sunucu hatası, lütfen tekrar deneyin.\", detail: ($json.error && ($json.error.message || $json.error.description)) || null } }) }}",
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a0571872-7b08-4e17-ad39-c2ab16ec8326"
+    },
+    {
+      "name": "POST /stats/overview",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "6d3c7b81-280d-4f00-b502-98afae952c5b",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stats/overview",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "523c1105-33dd-4311-b01a-f3c4ddd6b907"
+    },
+    {
+      "name": "İstatistik: token özeti",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /stats/overview').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "a8c45d04-c1c8-47e6-973d-460da890e4ef"
+    },
+    {
+      "name": "İstatistik: oturum",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        0
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "FgLEfSazu2hgNgcG",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "sessions",
+        "query": "={{ JSON.stringify({ token_hash: $json.token_hash, expires_ms: { $gt: $json.now_ms } }) }}",
+        "options": {
+          "limit": 1
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "97593f59-b69f-42a1-8272-a859e749c769"
+    },
+    {
+      "name": "İstatistik: oturum geçerli mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "9c3d0651-0d5c-4522-b14a-3cc181b29ee1",
+              "leftValue": "={{ !!$json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "007f34cd-b999-4198-9077-d478105697d1"
+    },
+    {
+      "name": "İstatistik: 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        140
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: { code: 'UNAUTHORIZED', message: 'Oturumunuz geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapın.' } }) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "763e0d1c-b556-4865-a073-9151a7628a1a"
+    },
+    {
+      "name": "İstatistik: dersler",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        -60
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "FgLEfSazu2hgNgcG",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "courses",
+        "query": "={{ JSON.stringify({ user_id: $('İstatistik: oturum').first().json.user_id }) }}",
+        "options": {
+          "projection": "{\"id\": 1, \"name\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "e90fceb1-5354-4968-b2c4-2a22345b34af"
+    },
+    {
+      "name": "İstatistik: testler",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        -60
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "FgLEfSazu2hgNgcG",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "quizzes",
+        "query": "={{ JSON.stringify({ user_id: $('İstatistik: oturum').first().json.user_id }) }}",
+        "options": {
+          "limit": 500,
+          "projection": "{\"id\": 1, \"course_id\": 1, \"questions\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "394581f3-f3b0-4f62-9fc1-4eb4966b010d"
+    },
+    {
+      "name": "İstatistik: denemeler",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        -60
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "mongoDb": {
+          "id": "FgLEfSazu2hgNgcG",
+          "name": "Asistan Mongo"
+        }
+      },
+      "parameters": {
+        "operation": "find",
+        "collection": "quiz_attempts",
+        "query": "={{ JSON.stringify({ user_id: $('İstatistik: oturum').first().json.user_id }) }}",
+        "options": {
+          "limit": 500,
+          "sort": "{\"created_at\": 1}",
+          "projection": "{\"id\": 1, \"quiz_id\": 1, \"course_id\": 1, \"score\": 1, \"total\": 1, \"percent\": 1, \"answers\": 1, \"created_at\": 1}"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "id": "8baf3e42-6c34-43b1-9d30-6221a27e804f"
+    },
+    {
+      "name": "İstatistik: hesapla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        -60
+      ],
+      "parameters": {
+        "jsCode": "// Kullanıcının tüm test geçmişinden ders ve konu bazlı istatistik çıkarır.\n// Tekrarlayan zayıflık: aynı konuda en az 2 ayrı testte hata yapılmışsa.\nconst iso = (v) => (v ? new Date(v).toISOString() : null);\nconst rows = (node) => $(node).all().map((i) => i.json).filter((d) => d && d.id);\nconst norm = (t) => String(t || '').toLocaleLowerCase('tr').replace(/[^\\p{L}\\p{N}\\s]/gu, ' ').replace(/\\s+/g, ' ').trim();\n\nconst courses = new Map(rows('İstatistik: dersler').map((c) => [c.id, c.name]));\nconst quizzes = new Map(rows('İstatistik: testler').map((q) => [q.id, q]));\nconst attempts = rows('İstatistik: denemeler').sort((a, b) => String(iso(a.created_at)).localeCompare(String(iso(b.created_at))));\n\nconst topicStats = new Map(); // ders|konu → istatistik\nfor (const a of attempts) {\n  const q = quizzes.get(a.quiz_id);\n  if (!q || !Array.isArray(q.questions)) continue;\n  const topicOf = new Map(q.questions.map((x) => [x.id, x.topic]));\n  for (const ans of a.answers || []) {\n    const topic = topicOf.get(ans.question_id);\n    if (!topic) continue;\n    // Benzer adlı konuları birleştir (ör. \"Zincir kuralı\" ve \"Zincir Kuralı\")\n    let key = `${a.course_id}|${norm(topic)}`;\n    for (const k of topicStats.keys()) {\n      const [cid, t] = k.split('|');\n      if (cid === a.course_id && (t.includes(norm(topic)) || norm(topic).includes(t))) { key = k; break; }\n    }\n    const s = topicStats.get(key) || { course_id: a.course_id, topic, total: 0, correct: 0, wrong_attempts: new Set(), last_wrong_at: null };\n    s.total += 1;\n    if (ans.is_correct) s.correct += 1;\n    else { s.wrong_attempts.add(a.id); s.last_wrong_at = iso(a.created_at); }\n    topicStats.set(key, s);\n  }\n}\n\nconst topics = [...topicStats.values()].map((s) => ({\n  course_id: s.course_id,\n  course_name: courses.get(s.course_id) ?? null,\n  topic: s.topic,\n  total: s.total,\n  correct: s.correct,\n  accuracy: Math.round((100 * s.correct) / s.total),\n  wrong_attempts: s.wrong_attempts.size,\n  last_wrong_at: s.last_wrong_at,\n})).sort((a, b) => a.accuracy - b.accuracy || b.total - a.total);\n\nconst recurring = topics.filter((t) => t.wrong_attempts >= 2).sort((a, b) => b.wrong_attempts - a.wrong_attempts);\n\nconst courseSummaries = [...courses.entries()].map(([id, name]) => {\n  const list = attempts.filter((a) => a.course_id === id);\n  const p = list.map((a) => Number(a.percent || 0));\n  return {\n    course_id: id,\n    name,\n    attempt_count: list.length,\n    avg_percent: p.length ? Math.round(p.reduce((x, y) => x + y, 0) / p.length) : null,\n    best_percent: p.length ? Math.max(...p) : null,\n    last_percent: p.length ? p[p.length - 1] : null,\n    first_percent: p.length ? p[0] : null,\n  };\n}).sort((a, b) => (b.attempt_count - a.attempt_count) || a.name.localeCompare(b.name, 'tr'));\n\nconst allP = attempts.map((a) => Number(a.percent || 0));\nconst recent = attempts.slice(-10).map((a) => ({\n  attempt_id: a.id, created_at: iso(a.created_at), course_name: courses.get(a.course_id) ?? null,\n  score: a.score, total: a.total, percent: a.percent,\n}));\n\nreturn [{\n  json: {\n    response: {\n      ok: true,\n      data: {\n        overall: {\n          attempt_count: attempts.length,\n          question_count: attempts.reduce((x, a) => x + Number(a.total || 0), 0),\n          correct_count: attempts.reduce((x, a) => x + Number(a.score || 0), 0),\n          avg_percent: allP.length ? Math.round(allP.reduce((x, y) => x + y, 0) / allP.length) : null,\n        },\n        courses: courseSummaries,\n        topics,\n        recurring,\n        recent,\n      },\n    },\n  },\n}];\n"
+      },
+      "onError": "continueErrorOutput",
+      "id": "bfcc3eb9-c397-4ece-ab61-f4ed05dc48ae"
+    },
+    {
+      "name": "200 İstatistik",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        -60
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "dbd92631-4dd9-4a59-b0fe-92b8c83b7683"
+    }
+  ],
+  "connections": {
+    "POST /stats/overview": {
+      "main": [
+        [
+          {
+            "node": "İstatistik: token özeti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "İstatistik: token özeti": {
+      "main": [
+        [
+          {
+            "node": "İstatistik: oturum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "İstatistik: oturum": {
+      "main": [
+        [
+          {
+            "node": "İstatistik: oturum geçerli mi?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "İstatistik: oturum geçerli mi?": {
+      "main": [
+        [
+          {
+            "node": "İstatistik: dersler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "İstatistik: 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "İstatistik: dersler": {
+      "main": [
+        [
+          {
+            "node": "İstatistik: testler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "İstatistik: testler": {
+      "main": [
+        [
+          {
+            "node": "İstatistik: denemeler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "İstatistik: denemeler": {
+      "main": [
+        [
+          {
+            "node": "İstatistik: hesapla",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "İstatistik: hesapla": {
+      "main": [
+        [
+          {
+            "node": "200 İstatistik",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "500 Sunucu hatası",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

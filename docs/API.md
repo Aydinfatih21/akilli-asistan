@@ -53,40 +53,35 @@ Her yanıt aynı yapıdadır; Flutter tek bir yerde çözümler.
 
 | # | Yol | Açıklama | Workflow | Durum |
 |---|---|---|---|---|
-| 1 | `GET /health` | Servis durumu | 90-system | Çekirdek |
-| 2 | `GET /models` | Kurulu Ollama modelleri | 90-system | Bonus |
 | 3 | `POST /auth/register` | Kayıt | 00-auth | Bonus |
 | 4 | `POST /auth/login` | Giriş | 00-auth | Çekirdek |
 | 5 | `POST /auth/logout` 🔒 | Çıkış | 00-auth | Bonus |
 | 6 | `POST /courses/list` 🔒 | Dersler + kısa istatistik | 10-courses | Çekirdek |
 | 7 | `POST /courses/create` 🔒 | Ders ekle | 10-courses | Çekirdek |
+| 7a | `POST /courses/update` 🔒 | Ders adını değiştir | 10-courses | Bonus |
+| 7b | `POST /courses/delete` 🔒 | Dersi notları, sohbetleri ve testleriyle sil | 10-courses | Bonus |
 | 8 | `POST /chat/send` 🔒🤖 | **Soru-cevap** | 01-chat | **Zorunlu 1** |
 | 9 | `POST /chat/conversations` 🔒 | Sohbet listesi | 01-chat | Bonus |
 | 10 | `POST /chat/history` 🔒 | Bir sohbetin mesajları | 01-chat | Bonus |
-| 11 | `POST /notes/create` 🔒 | Not kaydet (metin/TXT) | 02-notes | Çekirdek |
+| 11 | `POST /notes/create` 🔒 | Not kaydet (metin/TXT/PDF) | 02-notes | Çekirdek |
+| 11a | `POST /notes/extract-pdf` 🔒 | PDF'ten metin çıkar (multipart) | 02-notes | Bonus |
 | 12 | `POST /notes/list` 🔒 | Dersin notları | 02-notes | Çekirdek |
 | 13 | `POST /notes/summarize` 🔒🤖 | **Not özetleme** | 02-notes | **Zorunlu 2** |
 | 14 | `POST /quizzes/generate` 🔒🤖 | **Test oluşturma** | 03-quiz-generate | **Zorunlu 3** |
 | 15 | `POST /quizzes/submit` 🔒🤖 | **Performans değerlendirme** | 04-quiz-evaluate | **Zorunlu 4** |
-| 16 | `POST /stats/overview` 🔒 | Ders/konu başarı istatistikleri | 10-courses | Bonus |
-| 17 | `POST /plans/weekly` 🔒🤖 | Haftalık çalışma programı | 05-plan | Bonus |
+| 16 | `POST /stats/overview` 🔒 | Ders/konu istatistikleri, tekrarlayan zayıflıklar | 05-stats | Bonus |
 
-🤖 uç noktalarının hepsi isteğe bağlı `"model"` alanı alır (ör. `"gemma3:4b"`). Gönderilmezse `.env` içindeki `LLM_MODEL` kullanılır.
+🤖 uç noktalarında model **otomatik** seçilir (`model` gönderilmezse):
+
+| İş | Model | Neden |
+|---|---|---|
+| Özet, öneri, genel sohbet | `LLM_MODEL` (gemma3:4b) | Türkçesi doğal ve hızlı |
+| Sohbette matematik / kod / sayısal soru (ifade veya anahtar kelime: türev, denklem, python…) | `LLM_MODEL_2` (qwen2.5:7b) | Akıl yürütme ve yapılandırılmış çıktıda güçlü |
+| Formül yoğun nottan test | `LLM_MODEL_2` | Sayısal sorularda daha isabetli |
+
+İsteğe bağlı `"model"` alanı gönderilirse (Ayarlar → Gelişmiş) o model kullanılır. Sohbet yanıtındaki `reply.model_reason` seçimin nedenini söyler (`"Türkçe anlatım"`, `"matematiksel ifade"`, `"elle seçildi"`…).
 
 ---
-
-### 1. `GET /health`
-
-```json
-{ "ok": true, "data": { "db": "up", "ollama": "up", "default_model": "qwen2.5:7b" } }
-```
-
-### 2. `GET /models`
-
-```json
-{ "ok": true, "data": { "default": "qwen2.5:7b", "models": [
-  { "name": "qwen2.5:7b", "size_gb": 4.7 }, { "name": "gemma3:4b", "size_gb": 3.3 } ] } }
-```
 
 ### 3–5. Kimlik doğrulama
 
@@ -124,6 +119,11 @@ Kurallar: e-posta biçimi geçerli, şifre 6–72 karakter, ad 1–100 karakter.
 ```
 → `{ "ok": true, "data": { "course": { "id": "…", "name": "Mobil Programlama" } } }`
 
+`POST /courses/update` → `{ "course_id": "…", "name": "Matematik" }` → `{ "ok": true, "data": { "course": { "id": "…", "name": "Matematik" } } }` (aynı ad başka derste varsa `409 COURSE_EXISTS`)
+
+`POST /courses/delete` → `{ "course_id": "…" }` → `{ "ok": true, "data": { "deleted": true, "course_id": "…" } }`
+Dersin notları, testleri, test sonuçları, sohbetleri ve mesajları da silinir; geri alınamaz.
+
 ### 8. `POST /chat/send` 🤖 — Zorunlu 1: Soru-cevap
 
 ```json
@@ -140,7 +140,7 @@ Kurallar: e-posta biçimi geçerli, şifre 6–72 karakter, ad 1–100 karakter.
 { "ok": true, "data": {
   "conversation_id": "…",
   "reply": { "id": "…", "role": "assistant", "content": "Stateless widget…",
-             "model": "qwen2.5:7b", "created_at": "…" } } }
+             "model": "qwen2.5:7b", "model_reason": "matematiksel ifade", "created_at": "…" } } }
 ```
 
 ### 9–10. Sohbet geçmişi
@@ -164,8 +164,25 @@ Kurallar: e-posta biçimi geçerli, şifre 6–72 karakter, ad 1–100 karakter.
 { "course_id": "…", "title": "Flutter Giriş", "content": "Flutter, Google tarafından…", "source": "text" }
 ```
 - `content`: 20–15000 karakter. TXT dosyası Flutter'da okunur, metni bu alanla gönderilir (`"source": "txt"`).
+  PDF'in metni önce `/notes/extract-pdf` ile çıkarılır; kullanıcı düzenleyip kaydeder (`"source": "pdf"`).
 
 → `{ "ok": true, "data": { "note": { "id": "…", "title": "Flutter Giriş", "created_at": "…" } } }`
+
+`POST /notes/extract-pdf` — **multipart/form-data**, dosya `file` alanında (en fazla 10 MB, uygulamada denetlenir)
+```
+curl -H "Authorization: Bearer <token>" -F "file=@turev.pdf" http://localhost:5678/webhook/notes/extract-pdf
+```
+n8n'in **Extract From File** düğümü PDF'teki seçilebilir metni okur; kod satır sonunda bölünmüş kelimeleri
+birleştirir, fazla boşluk ve boş satırları temizler. Not kaydedilmez; metin uygulamada düzenlenip `/notes/create` ile gönderilir.
+```json
+{ "ok": true, "data": { "text": "Türev, bir fonksiyonun…", "characters": 2140, "pages": 3,
+  "file_name": "Türev Notları.pdf", "title": "Türev Notları" } }
+```
+| Durum | Kod | Ne zaman |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | Dosya yok veya PDF değil |
+| 422 | `PDF_UNREADABLE` | Bozuk veya şifreli PDF |
+| 422 | `PDF_NO_TEXT` | Seçilebilir metin yok (taranmış belge) |
 
 `POST /notes/list` → `{ "course_id": "…" }`
 ```json
@@ -187,7 +204,8 @@ Kurallar: e-posta biçimi geçerli, şifre 6–72 karakter, ad 1–100 karakter.
   "summary": {
     "short": "Flutter, tek kod tabanıyla çok platformlu uygulama geliştirmeyi sağlayan…",
     "key_points": ["Dart dilini kullanır", "Android, iOS, web ve masaüstü desteği", "Arayüz widget'lardan oluşur"],
-    "keywords": ["Flutter", "Dart", "Widget"] },
+    "keywords": ["Flutter", "Dart", "Widget"],
+    "flashcards": [ { "front": "Flutter hangi dili kullanır?", "back": "Dart" } ] },
   "model": "qwen2.5:7b", "cached": false } }
 ```
 
@@ -197,6 +215,7 @@ Kurallar: e-posta biçimi geçerli, şifre 6–72 karakter, ad 1–100 karakter.
 { "note_id": "…", "question_count": 5, "difficulty": "medium", "model": "qwen2.5:7b" }
 ```
 - `question_count`: 5–10 (varsayılan 5) · `difficulty`: `easy` | `medium` | `hard`
+- Modelden `question_count + 2` soru istenir; kurala uymayan sorular (cevabı soru metninde, doğru cevap şıklarda yok, tekrar, Türkçe dışı karakter…) elenir. Yeterli geçerli soru yoksa yeniden denenir; 3. deneme diğer modelle yapılır. 3 denemede de olmazsa `502 AI_BAD_OUTPUT`, elenme nedenleri `error.detail` alanında.
 
 **Yanıtta doğru cevap ve açıklama YOKTUR** (sunucuda saklanır, teslimden sonra döner):
 ```json
@@ -225,28 +244,26 @@ Kurallar: e-posta biçimi geçerli, şifre 6–72 karakter, ad 1–100 karakter.
     { "question_id": "…", "selected_index": 1, "correct_index": 1, "is_correct": true,
       "explanation": "Flutter, Dart dilini kullanır." } ],
   "weak_topics": ["Widget yaşam döngüsü"],
+  "recurring_topics": [ { "topic": "Widget yaşam döngüsü", "previous": 2 } ],
   "recommendation": "Widget yaşam döngüsü konusunda eksiğin var. initState ve dispose…",
-  "recommendation_source": "ai" } }
+  "recommendation_source": "ai", "recommendation_issue": null } }
 ```
+- `recurring_topics`: bu testte yanlış yapılan ve aynı dersin **önceki testlerinde de** hata yapılan konular (`previous`: kaç önceki testte). Öneri bu konuları ayrıca vurgular.
+- `recommendation_issue`: yedek öneri kullanıldıysa nedeni (teşhis için).
 
 ### 16. `POST /stats/overview` → gövde `{}`
 
 ```json
 { "ok": true, "data": {
-  "courses": [ { "course_id": "…", "name": "Mobil Programlama", "attempt_count": 2, "avg_percent": 70 } ],
-  "topics":  [ { "course_name": "Mobil Programlama", "topic": "State yönetimi", "correct": 1, "total": 4, "accuracy": 25 } ],
-  "recent":  [ { "created_at": "…", "course_name": "Mobil Programlama", "score": 4, "total": 5, "percent": 80 } ] } }
+  "overall": { "attempt_count": 5, "question_count": 25, "correct_count": 14, "avg_percent": 56 },
+  "courses": [ { "course_id": "…", "name": "Matematik", "attempt_count": 3, "avg_percent": 60,
+                 "best_percent": 80, "first_percent": 40, "last_percent": 80 } ],
+  "topics":  [ { "course_name": "Matematik", "topic": "Zincir kuralı", "total": 4, "correct": 1,
+                 "accuracy": 25, "wrong_attempts": 3, "last_wrong_at": "…" } ],
+  "recurring": [ { "topic": "Zincir kuralı", "course_name": "Matematik", "wrong_attempts": 3, "accuracy": 25 } ],
+  "recent":  [ { "created_at": "…", "course_name": "Matematik", "score": 4, "total": 5, "percent": 80 } ] } }
 ```
-
-### 17. `POST /plans/weekly` 🤖
-
-```json
-{ "days_per_week": 5, "minutes_per_day": 60 }
-```
-```json
-{ "ok": true, "data": { "plan_id": "…", "days": [
-  { "day": "Pazartesi", "tasks": [ { "course_name": "Mobil Programlama", "topic": "State yönetimi", "minutes": 40, "activity": "Notu tekrar oku, 5 soruluk test çöz" } ] } ] } }
-```
+- `recurring`: **tekrarlayan zayıflıklar**, aynı konuda en az 2 ayrı testte hata yapılmış konular. Benzer adlar ("Zincir kuralı" / "Zincir Kuralı uygulaması") tek konu sayılır.
 
 ## 3. Yapay zekâ çıktılarının doğrulanması (n8n içi)
 
