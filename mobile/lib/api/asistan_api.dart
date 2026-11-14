@@ -28,6 +28,10 @@ class AsistanApi {
       asMap((await client.post('courses/update', body: {'course_id': courseId, 'name': name}))['course']));
 
   /// Dersi notları, testleri, sonuçları ve sohbetleriyle birlikte siler.
+  /// Notu, ondan üretilen testleri ve test sonuçlarını siler; ders kalır. Silinen test sayısını döner.
+  Future<int> deleteNote(String noteId) async =>
+      asInt((await client.post('notes/delete', body: {'note_id': noteId}))['deleted_quizzes']) ?? 0;
+
   Future<void> deleteCourse(String courseId) async {
     await client.post('courses/delete', body: {'course_id': courseId});
   }

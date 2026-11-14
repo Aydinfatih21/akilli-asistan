@@ -6,6 +6,7 @@ import '../api/asistan_api.dart';
 import '../api/models.dart';
 import '../utils/format.dart';
 import '../widgets/course_actions.dart';
+import '../widgets/note_actions.dart';
 import '../widgets/state_views.dart';
 import 'add_note_screen.dart';
 import 'chat_screen.dart';
@@ -175,8 +176,21 @@ class _CourseScreenState extends State<CourseScreen> {
                 label: const Text('Not ekle'),
               ),
             )
-          else
-            for (final n in notes) _NoteCard(note: n, onTap: () => _openNote(n)),
+          else ...[
+            for (final n in notes)
+              _NoteCard(
+                note: n,
+                onTap: () => _openNote(n),
+                onLongPress: () async {
+                  if (await confirmAndDeleteNote(context, n) && mounted) _load();
+                },
+              ),
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text('İpucu: Notu silmek için karta basılı tut.',
+                  textAlign: TextAlign.center, style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
+            ),
+          ],
           if (_conversations.isNotEmpty) ...[
             const SizedBox(height: 20),
             Text('Bu dersteki sohbetler', style: tt.titleMedium),
@@ -203,10 +217,11 @@ class _CourseScreenState extends State<CourseScreen> {
 }
 
 class _NoteCard extends StatelessWidget {
-  const _NoteCard({required this.note, required this.onTap});
+  const _NoteCard({required this.note, required this.onTap, this.onLongPress});
 
   final NoteItem note;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -220,6 +235,7 @@ class _NoteCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -227,7 +243,7 @@ class _NoteCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(note.source == 'txt' ? Icons.text_snippet_outlined : Icons.description_outlined,
+                  Icon(note.source == 'pdf' ? Icons.picture_as_pdf_outlined : note.source == 'txt' ? Icons.text_snippet_outlined : Icons.description_outlined,
                       size: 20, color: cs.primary),
                   const SizedBox(width: 8),
                   Expanded(

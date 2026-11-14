@@ -65,6 +65,7 @@ Her yanıt aynı yapıdadır; Flutter tek bir yerde çözümler.
 | 10 | `POST /chat/history` 🔒 | Bir sohbetin mesajları | 01-chat | Bonus |
 | 11 | `POST /notes/create` 🔒 | Not kaydet (metin/TXT/PDF) | 02-notes | Çekirdek |
 | 11a | `POST /notes/extract-pdf` 🔒 | PDF'ten metin çıkar (multipart) | 02-notes | Bonus |
+| 11b | `POST /notes/delete` 🔒 | Notu, testleri ve sonuçlarıyla sil (ders kalır) | 02-notes | Bonus |
 | 12 | `POST /notes/list` 🔒 | Dersin notları | 02-notes | Çekirdek |
 | 13 | `POST /notes/summarize` 🔒🤖 | **Not özetleme** | 02-notes | **Zorunlu 2** |
 | 14 | `POST /quizzes/generate` 🔒🤖 | **Test oluşturma** | 03-quiz-generate | **Zorunlu 3** |
@@ -183,6 +184,10 @@ birleştirir, fazla boşluk ve boş satırları temizler. Not kaydedilmez; metin
 | 400 | `VALIDATION_ERROR` | Dosya yok veya PDF değil |
 | 422 | `PDF_UNREADABLE` | Bozuk veya şifreli PDF |
 | 422 | `PDF_NO_TEXT` | Seçilebilir metin yok (taranmış belge) |
+
+`POST /notes/delete` → `{ "note_id": "…" }`
+Notu, ondan üretilen testleri ve bu testlerin sonuçlarını siler; ders ve diğer notlar kalır.
+→ `{ "ok": true, "data": { "deleted": true, "note_id": "…", "deleted_quizzes": 2 } }` · başkasının veya olmayan not: `404 NOT_FOUND`
 
 `POST /notes/list` → `{ "course_id": "…" }`
 ```json

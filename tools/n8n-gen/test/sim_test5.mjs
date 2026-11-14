@@ -1,5 +1,5 @@
 // PDF yükleme: /notes/extract-pdf (çok parçalı form → Extract From File → metin temizleme)
-import { api } from './sim.mjs';
+import { api, db } from './sim.mjs';
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; console.log('GEÇTİ', m); } else { fail++; console.log('KALDI', m); } };
 const st = (r, code, m, extra = () => true) => { let good = r.status === code; try { good = good && !!extra(r.json); } catch { good = false; } ok(good, `${m} (${r.status})`); if (!good) console.log('      ', r.text); return r.json; };
@@ -23,6 +23,29 @@ st(api('notes/extract-pdf', {}, A, file('bozuk içerik', 'bozuk.pdf')), 422, 'bo
 st(api('notes/extract-pdf', {}, A, file('%PDF %%PAGES=2\n  \n ')), 422, 'taranmış (metinsiz) PDF → 422 PDF_NO_TEXT', (x) => x.error.code === 'PDF_NO_TEXT');
 st(api('notes/extract-pdf', {}, undefined, file(PDF)), 401, 'token yok → 401');
 st(api('notes/extract-pdf', {}, 'sahte', file(PDF)), 401, 'geçersiz token → 401');
+
+console.log('--- not silme (ders kalır)');
+const B = api('auth/register', { name: 'b', email: `b${uniq}@ornek.com`, password: 'gizli123' }).json.data.token;
+const cid = api('courses/create', { name: 'Tarih' }, A).json.data.course.id;
+const TXT = 'Osmanlı Devleti 1299 yılında kuruldu. İstanbul 1453 yılında fethedildi ve Yeni Çağ başladı.';
+const n1 = api('notes/create', { course_id: cid, title: 'Not 1', content: TXT }, A).json.data.note.id;
+const n2 = api('notes/create', { course_id: cid, title: 'Not 2', content: TXT }, A).json.data.note.id;
+const quiz = (n) => api('quizzes/generate', { note_id: n }, A).json.data;
+const solve = (q) => { const st = db.quizzes.find((x) => x.id === q.quiz_id);
+  api('quizzes/submit', { quiz_id: q.quiz_id, answers: st.questions.map((x) => ({ question_id: x.id, selected_index: x.correct_index })) }, A); };
+const q1 = quiz(n1), q1b = quiz(n1), q2 = quiz(n2);
+solve(q1); solve(q2);
+st(api('notes/delete', { note_id: n1 }, B), 404, 'başkasının notu → 404');
+st(api('notes/delete', { note_id: n1 }), 401, 'token yok → 401');
+st(api('notes/delete', { note_id: 'yok' }, A), 404, 'olmayan not → 404');
+st(api('notes/delete', { note_id: n1 }, A), 200, 'not silindi', (x) => x.data.deleted && x.data.deleted_quizzes === 2);
+ok(!db.notes.some((n) => n.id === n1) && db.notes.some((n) => n.id === n2), 'yalnızca o not silindi');
+ok(!db.quizzes.some((q) => q.note_id === n1) && db.quizzes.some((q) => q.id === q2.quiz_id), 'notun testleri silindi, diğer notunki kaldı');
+ok(!db.quiz_attempts.some((a) => a.quiz_id === q1.quiz_id) && db.quiz_attempts.some((a) => a.quiz_id === q2.quiz_id), 'notun test sonuçları silindi, diğerininki kaldı');
+ok(db.courses.some((c) => c.id === cid), 'ders duruyor');
+const list = api('notes/list', { course_id: cid }, A).json.data.notes;
+ok(list.length === 1 && list[0].id === n2, 'not listesi güncel');
+st(api('notes/delete', { note_id: n1 }, A), 404, 'ikinci silme → 404');
 
 console.log(`\nSONUÇ: ${pass} geçti, ${fail} kaldı`);
 process.exit(fail ? 1 : 0);

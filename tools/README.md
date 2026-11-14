@@ -11,11 +11,11 @@
 | `gen_mongo2.py` | `02-notes`, `03-quiz-generate`, `04-quiz-evaluate`, `05-stats`; Ollama çağrısı + doğrulama + 3 deneme döngüsü |
 | `js/*.js` | Code düğümlerinin JavaScript'i (doğrulama, prompt, puanlama, öneri, istatistik) |
 | `test/sim.mjs` | Mini n8n simülatörü: workflow JSON'larını gerçek Code düğümü kodu ve ifadelerle, bellek-içi MongoDB ve sahte Ollama üzerinde çalıştırır |
-| `test/sim_test*.mjs` | 135 senaryo |
+| `test/sim_test*.mjs` | 145 senaryo |
 
 ```bash
 python tools/n8n-gen/build.py          # n8n/workflows/*.json dosyalarını üretir
-node tools/n8n-gen/test/run-all.mjs    # 135 senaryoyu çalıştırır
+node tools/n8n-gen/test/run-all.mjs    # 145 senaryoyu çalıştırır
 ```
 
 Gereksinimler: Python 3.10+, Node.js 18+ (ek paket gerekmez).

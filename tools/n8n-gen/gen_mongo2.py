@@ -161,6 +161,35 @@ wf.link(cl, okt)
 wf.link(okt, wf.respond("200 PDF metni", 200, [1980, 1280], body=RESPONSE_BODY), 0)
 wf.link(okt, wf.respond("422 PDF: metin yok", 422, [1980, 1440], body=RESPONSE_BODY), 1)
 
+# ---- /notes/delete — notu, ondan üretilen testleri ve test sonuçlarını siler (ders kalır)
+w = wf.webhook("POST /notes/delete", "notes/delete", [0, 1840])
+s_, ok = wf.auth("Not sil", w, 220, 1840, r500)
+U = "$('Not sil: oturum').first().json.user_id"
+f = wf.mongo_find("Not sil: not", "notes",
+                  "{ id: String($('POST /notes/delete').first().json.body.note_id ?? '-') || '-', user_id: %s }" % U,
+                  [880, 1780], limit=1, projection={"id": 1, "user_id": 1, "title": 1})
+wf.link(ok, f, 0); wf.link(f, r500, 1)
+ex = wf.if_true("Not sil: not var mı?", "!!$json.id", [1100, 1780])
+wf.link(f, ex)
+wf.link(ex, wf.respond("404 Not sil: not yok", 404, [1320, 1920], body=static(
+    {"ok": False, "error": {"code": "NOT_FOUND", "message": "Not bulunamadı."}})), 1)
+qz = wf.mongo_find("Not sil: testler", "quizzes", "{ note_id: $json.id, user_id: $json.user_id }",
+                   [1320, 1740], projection={"id": 1})
+wf.link(ex, qz, 0); wf.link(qz, r500, 1)
+plan = wf.code("Not sil: plan", js("note_delete_plan"), [1540, 1740])
+wf.link(qz, plan)
+P = "$('Not sil: plan').first().json"
+prev, x = plan, 1760
+for coll, q in [("quiz_attempts", "{ quiz_id: { $in: %s.quiz_ids }, user_id: %s.user_id }" % (P, P)),
+                ("quizzes", "{ note_id: %s.note_id, user_id: %s.user_id }" % (P, P)),
+                ("notes", "{ id: %s.note_id, user_id: %s.user_id }" % (P, P))]:
+    dl = wf.mongo_delete(f"Not sil: {coll}", coll, q, [x, 1740])
+    wf.link(prev, dl); wf.link(dl, r500, 1)
+    prev, x = dl, x + 220
+wf.link(prev, wf.respond("200 Not silindi", 200, [x, 1740], body=(
+    "={{ JSON.stringify({ ok: true, data: { deleted: true, note_id: $('Not sil: plan').first().json.note_id, "
+    "deleted_quizzes: $('Not sil: plan').first().json.quiz_ids.length } }) }}")), 0)
+
 wf.save(f"{OUT}/02-notes.json")
 print("02-notes:", len(wf.nodes), "düğüm")
 

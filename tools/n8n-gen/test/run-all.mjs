@@ -9,7 +9,7 @@ const suites = [
   ['sim_test2.mjs', 'Not, özet, test, değerlendirme (canlı demo)'],
   ['sim_test3.mjs', 'Öneri kuralları, soru kalitesi, dengeli şıklar'],
   ['sim_test4.mjs', 'Ders düzenle/sil, otomatik model, geçmiş analizi, istatistik, hap bilgi'],
-  ['sim_test5.mjs', 'PDF yükleme (metin çıkarma ve temizleme)'],
+  ['sim_test5.mjs', 'PDF yükleme, not silme'],
 ];
 let failed = 0;
 for (const [file, title] of suites) {

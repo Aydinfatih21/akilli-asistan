@@ -5,6 +5,7 @@ import '../api/api_client.dart';
 import '../api/asistan_api.dart';
 import '../api/models.dart';
 import '../state/settings_state.dart';
+import '../widgets/note_actions.dart';
 import '../widgets/state_views.dart';
 import 'quiz_screen.dart';
 
@@ -78,7 +79,21 @@ class _NoteScreenState extends State<NoteScreen> {
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.note.title, maxLines: 1, overflow: TextOverflow.ellipsis)),
+      appBar: AppBar(
+        title: Text(widget.note.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        actions: [
+          IconButton(
+            tooltip: 'Notu sil',
+            icon: const Icon(Icons.delete_outline_rounded),
+            onPressed: _generating
+                ? null
+                : () async {
+                    final navigator = Navigator.of(context);
+                    if (await confirmAndDeleteNote(context, widget.note)) navigator.pop();
+                  },
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [

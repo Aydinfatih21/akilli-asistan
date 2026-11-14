@@ -81,7 +81,7 @@ Adım adım çekim senaryosu: [docs/demo-senaryosu.md](docs/demo-senaryosu.md)
   ekranında "3 testte hata" gibi tekrarlayan zayıflıklar listelenir. Model konu adlarını her testte farklı
   yazabildiği için ("Zincir kuralı" / "Zincir Kuralı uygulaması") konular normalize edilerek eşleştirilir.
 - **Hap bilgi kartları:** özetle aynı yapay zekâ çağrısında üretilir; dokununca çevrilen kartlar.
-- **Ders yönetimi:** ders adını düzeltme, dersi tüm notları, testleri ve sohbetleriyle silme (onaylı).
+- **Ders ve not yönetimi:** ders adını düzeltme, dersi tüm notları, testleri ve sohbetleriyle silme; dersi silmeden tek bir notu testleri ve sonuçlarıyla silme (onaylı).
 - **Uzun not desteği:** 15.000 karakter sınırını aşan kısım kırmızı gösterilir; tek dokunuşla kırpılır.
 - **Koyu mod:** Sistem / Açık / Koyu.
 
@@ -148,7 +148,7 @@ Ayarlar → Gelişmiş'ten model elle de seçilebilir.
 ### n8n iş akışları koddan üretilir
 
 Workflow JSON'ları elle değil, [tools/n8n-gen](tools/n8n-gen) altındaki Python üreticilerle oluşturulur;
-Code düğümlerinin JavaScript'i ayrı dosyalarda durur. Bu sayede her değişiklik **simülatörde 135 senaryoyla**
+Code düğümlerinin JavaScript'i ayrı dosyalarda durur. Bu sayede her değişiklik **simülatörde 145 senaryoyla**
 otomatik test edilir (bkz. [Testler](#testler)).
 
 ## Kurulum
@@ -205,7 +205,7 @@ ve Windows Güvenlik Duvarı'nda 5678 numaralı TCP portuna izin verin.
 | Katman | Nasıl | Kapsam |
 |---|---|---|
 | Uçtan uca (gerçek sistem) | `scripts/*.ps1` | Kayıt, giriş, dersler, sohbet, not → özet → test → değerlendirme, PDF yükleme; hata kodları |
-| İş akışı simülatörü | `node tools/n8n-gen/test/run-all.mjs` | 135 senaryo: workflow JSON'ları gerçek Code düğümü koduyla, bellek-içi MongoDB ve sahte Ollama üzerinde çalıştırılır (yetki, sahiplik, yeniden deneme, yedek öneri, dengeli şıklar, otomatik model, geçmiş analizi, ders silme, PDF) |
+| İş akışı simülatörü | `node tools/n8n-gen/test/run-all.mjs` | 145 senaryo: workflow JSON'ları gerçek Code düğümü koduyla, bellek-içi MongoDB ve sahte Ollama üzerinde çalıştırılır (yetki, sahiplik, yeniden deneme, yedek öneri, dengeli şıklar, otomatik model, geçmiş analizi, ders ve not silme, PDF) |
 | Flutter birim testleri | `cd mobile && flutter test` | JSON → model dönüşümleri, Türkçe biçimlendirme |
 
 ## Proje yapısı
@@ -229,7 +229,7 @@ akilli-asistan/
 |---|---|---|
 | Flutter arayüzü ve kullanıcı deneyimi | 15 | 11 ekran, her ekranda yükleniyor / hata / boş durumları, Markdown sohbet, koyu mod, özgün ikon |
 | Flutter – n8n API entegrasyonu | 15 | Tek tipli API istemcisi, ortak JSON zarfı, Türkçe hata mesajları, yapay zekâ çağrılarında uzun zaman aşımı, 401'de otomatik çıkış |
-| n8n workflow geliştirme | 20 | 7 workflow, 17 uç nokta; her durum için ayrı ve açık durum kodu; koddan üretim + simülatör testi |
+| n8n workflow geliştirme | 20 | 7 workflow, 18 uç nokta; her durum için ayrı ve açık durum kodu; koddan üretim + simülatör testi |
 | Ollama entegrasyonu ve prompt tasarımı | 20 | JSON şeması, doğrulama + 3 deneme, Türkçe denetimi, otomatik model seçimi, geçmişe dayalı öneri |
 | Docker ve Docker Compose | 15 | Tek komutla kurulum, sağlık kontrolleri, GPU, otomatik model indirme, MongoDB başlangıç betiği |
 | Hata yönetimi ve veri işleme | 10 | Şema doğrulaması (veritabanı + kod), 400/401/404/409/422/502/503 ayrımı, yedek öneri, sahiplik kontrolleri |
