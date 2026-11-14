@@ -14,7 +14,7 @@
         "width": 900,
         "height": 160
       },
-      "id": "9217f338-e31d-4e6f-a04a-0a20351d0549"
+      "id": "2885034a-794b-43a5-ac8a-e75c54afc53a"
     },
     {
       "name": "500 Sunucu hatası",
@@ -39,7 +39,7 @@
           }
         }
       },
-      "id": "a0571872-7b08-4e17-ad39-c2ab16ec8326"
+      "id": "16bd8a49-9d6c-4d33-b455-47611cef1341"
     },
     {
       "name": "POST /stats/overview",
@@ -49,14 +49,14 @@
         0,
         0
       ],
-      "webhookId": "6d3c7b81-280d-4f00-b502-98afae952c5b",
+      "webhookId": "270aec4d-6b2c-44f6-ac4d-62db88190114",
       "parameters": {
         "httpMethod": "POST",
         "path": "stats/overview",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "523c1105-33dd-4311-b01a-f3c4ddd6b907"
+      "id": "7604bc42-73cb-461e-b985-660b2aaab550"
     },
     {
       "name": "İstatistik: token özeti",
@@ -70,7 +70,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /stats/overview').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "a8c45d04-c1c8-47e6-973d-460da890e4ef"
+      "id": "e7c60588-0da2-40ad-9fa1-033dde504bf2"
     },
     {
       "name": "İstatistik: oturum",
@@ -97,7 +97,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "97593f59-b69f-42a1-8272-a859e749c769"
+      "id": "48cfc6ea-4adf-43a3-a6d0-35bde69aa9d4"
     },
     {
       "name": "İstatistik: oturum geçerli mi?",
@@ -116,7 +116,7 @@
           },
           "conditions": [
             {
-              "id": "9c3d0651-0d5c-4522-b14a-3cc181b29ee1",
+              "id": "b9240892-75b1-4ccc-a281-298f0ba3674d",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -130,7 +130,7 @@
         },
         "options": {}
       },
-      "id": "007f34cd-b999-4198-9077-d478105697d1"
+      "id": "239fba33-1f09-4ff9-aaf4-af6fdedc6431"
     },
     {
       "name": "İstatistik: 401",
@@ -155,7 +155,7 @@
           }
         }
       },
-      "id": "763e0d1c-b556-4865-a073-9151a7628a1a"
+      "id": "9881d471-2272-4502-a392-fb6d3c401567"
     },
     {
       "name": "İstatistik: dersler",
@@ -182,7 +182,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "e90fceb1-5354-4968-b2c4-2a22345b34af"
+      "id": "dca8f7eb-224d-43ac-96c2-030a895468ea"
     },
     {
       "name": "İstatistik: testler",
@@ -210,7 +210,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "394581f3-f3b0-4f62-9fc1-4eb4966b010d"
+      "id": "0abdf6d5-a6f9-4853-8453-603e9ac6b7c7"
     },
     {
       "name": "İstatistik: denemeler",
@@ -239,7 +239,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "8baf3e42-6c34-43b1-9d30-6221a27e804f"
+      "id": "6b11bcea-c520-4505-9a23-68ddbbb4a90e"
     },
     {
       "name": "İstatistik: hesapla",
@@ -253,7 +253,7 @@
         "jsCode": "// Kullanıcının tüm test geçmişinden ders ve konu bazlı istatistik çıkarır.\n// Tekrarlayan zayıflık: aynı konuda en az 2 ayrı testte hata yapılmışsa.\nconst iso = (v) => (v ? new Date(v).toISOString() : null);\nconst rows = (node) => $(node).all().map((i) => i.json).filter((d) => d && d.id);\nconst norm = (t) => String(t || '').toLocaleLowerCase('tr').replace(/[^\\p{L}\\p{N}\\s]/gu, ' ').replace(/\\s+/g, ' ').trim();\n\nconst courses = new Map(rows('İstatistik: dersler').map((c) => [c.id, c.name]));\nconst quizzes = new Map(rows('İstatistik: testler').map((q) => [q.id, q]));\nconst attempts = rows('İstatistik: denemeler').sort((a, b) => String(iso(a.created_at)).localeCompare(String(iso(b.created_at))));\n\nconst topicStats = new Map(); // ders|konu → istatistik\nfor (const a of attempts) {\n  const q = quizzes.get(a.quiz_id);\n  if (!q || !Array.isArray(q.questions)) continue;\n  const topicOf = new Map(q.questions.map((x) => [x.id, x.topic]));\n  for (const ans of a.answers || []) {\n    const topic = topicOf.get(ans.question_id);\n    if (!topic) continue;\n    // Benzer adlı konuları birleştir (ör. \"Zincir kuralı\" ve \"Zincir Kuralı\")\n    let key = `${a.course_id}|${norm(topic)}`;\n    for (const k of topicStats.keys()) {\n      const [cid, t] = k.split('|');\n      if (cid === a.course_id && (t.includes(norm(topic)) || norm(topic).includes(t))) { key = k; break; }\n    }\n    const s = topicStats.get(key) || { course_id: a.course_id, topic, total: 0, correct: 0, wrong_attempts: new Set(), last_wrong_at: null };\n    s.total += 1;\n    if (ans.is_correct) s.correct += 1;\n    else { s.wrong_attempts.add(a.id); s.last_wrong_at = iso(a.created_at); }\n    topicStats.set(key, s);\n  }\n}\n\nconst topics = [...topicStats.values()].map((s) => ({\n  course_id: s.course_id,\n  course_name: courses.get(s.course_id) ?? null,\n  topic: s.topic,\n  total: s.total,\n  correct: s.correct,\n  accuracy: Math.round((100 * s.correct) / s.total),\n  wrong_attempts: s.wrong_attempts.size,\n  last_wrong_at: s.last_wrong_at,\n})).sort((a, b) => a.accuracy - b.accuracy || b.total - a.total);\n\nconst recurring = topics.filter((t) => t.wrong_attempts >= 2).sort((a, b) => b.wrong_attempts - a.wrong_attempts);\n\nconst courseSummaries = [...courses.entries()].map(([id, name]) => {\n  const list = attempts.filter((a) => a.course_id === id);\n  const p = list.map((a) => Number(a.percent || 0));\n  return {\n    course_id: id,\n    name,\n    attempt_count: list.length,\n    avg_percent: p.length ? Math.round(p.reduce((x, y) => x + y, 0) / p.length) : null,\n    best_percent: p.length ? Math.max(...p) : null,\n    last_percent: p.length ? p[p.length - 1] : null,\n    first_percent: p.length ? p[0] : null,\n  };\n}).sort((a, b) => (b.attempt_count - a.attempt_count) || a.name.localeCompare(b.name, 'tr'));\n\nconst allP = attempts.map((a) => Number(a.percent || 0));\nconst recent = attempts.slice(-10).map((a) => ({\n  attempt_id: a.id, created_at: iso(a.created_at), course_name: courses.get(a.course_id) ?? null,\n  score: a.score, total: a.total, percent: a.percent,\n}));\n\nreturn [{\n  json: {\n    response: {\n      ok: true,\n      data: {\n        overall: {\n          attempt_count: attempts.length,\n          question_count: attempts.reduce((x, a) => x + Number(a.total || 0), 0),\n          correct_count: attempts.reduce((x, a) => x + Number(a.score || 0), 0),\n          avg_percent: allP.length ? Math.round(allP.reduce((x, y) => x + y, 0) / allP.length) : null,\n        },\n        courses: courseSummaries,\n        topics,\n        recurring,\n        recent,\n      },\n    },\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "bfcc3eb9-c397-4ece-ab61-f4ed05dc48ae"
+      "id": "2043f187-304c-429c-9fc3-bee8ae274465"
     },
     {
       "name": "200 İstatistik",
@@ -278,7 +278,7 @@
           }
         }
       },
-      "id": "dbd92631-4dd9-4a59-b0fe-92b8c83b7683"
+      "id": "7c3989b9-5b01-4b8b-9e14-b72b28626ef9"
     }
   ],
   "connections": {

@@ -120,6 +120,8 @@ Bu yüzden her yapay zekâ çağrısı aynı desenle korunur:
    Tüm yapay zekâ çağrılarında 3. deneme **diğer modelle** yapılır (yedek model; sohbette yanıtın altında `yedek model` yazar).
    Testte model istenenden **2 fazla soru** üretir; kurala uymayan sorular tek tek elenir, test bütünüyle reddedilmez.
    Uzun bir sohbet yanıtına yalnızca birkaç yabancı karakter kaçmışsa yanıt çöpe atılmaz, o karakterler silinir.
+   Sohbette yanıt Çince/Kiril içerirse 2. deneme hemen diğer modelle yapılır; dil kuralı son kullanıcı mesajına da hatırlatılır.
+   Modelin yazdığı LaTeX (`\frac`, `\lim`, `\[ \]`) uygulamada okunabilsin diye düz metne çevrilir.
 4. Ollama kapalıysa `503 AI_UNAVAILABLE` ve kullanıcıya Türkçe mesaj.
 
 Test sorularında doğru cevabın konumu **dengeli dağıtılır** (her 4 soruda A/B/C/D birer kez):
@@ -148,7 +150,7 @@ Ayarlar → Gelişmiş'ten model elle de seçilebilir.
 ### n8n iş akışları koddan üretilir
 
 Workflow JSON'ları elle değil, [tools/n8n-gen](tools/n8n-gen) altındaki Python üreticilerle oluşturulur;
-Code düğümlerinin JavaScript'i ayrı dosyalarda durur. Bu sayede her değişiklik **simülatörde 145 senaryoyla**
+Code düğümlerinin JavaScript'i ayrı dosyalarda durur. Bu sayede her değişiklik **simülatörde 149 senaryoyla**
 otomatik test edilir (bkz. [Testler](#testler)).
 
 ## Kurulum
@@ -205,7 +207,7 @@ ve Windows Güvenlik Duvarı'nda 5678 numaralı TCP portuna izin verin.
 | Katman | Nasıl | Kapsam |
 |---|---|---|
 | Uçtan uca (gerçek sistem) | `scripts/*.ps1` | Kayıt, giriş, dersler, sohbet, not → özet → test → değerlendirme, PDF yükleme; hata kodları |
-| İş akışı simülatörü | `node tools/n8n-gen/test/run-all.mjs` | 145 senaryo: workflow JSON'ları gerçek Code düğümü koduyla, bellek-içi MongoDB ve sahte Ollama üzerinde çalıştırılır (yetki, sahiplik, yeniden deneme, yedek öneri, dengeli şıklar, otomatik model, geçmiş analizi, ders ve not silme, PDF) |
+| İş akışı simülatörü | `node tools/n8n-gen/test/run-all.mjs` | 149 senaryo: workflow JSON'ları gerçek Code düğümü koduyla, bellek-içi MongoDB ve sahte Ollama üzerinde çalıştırılır (yetki, sahiplik, yeniden deneme, yedek öneri, dengeli şıklar, otomatik model, geçmiş analizi, ders ve not silme, PDF) |
 | Flutter birim testleri | `cd mobile && flutter test` | JSON → model dönüşümleri, Türkçe biçimlendirme |
 
 ## Proje yapısı

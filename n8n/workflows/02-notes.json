@@ -14,7 +14,7 @@
         "width": 900,
         "height": 200
       },
-      "id": "32c6f8ba-234b-4dd3-b5d2-15e67b18426d"
+      "id": "12733b28-df88-4884-9410-5a4afcc4814f"
     },
     {
       "name": "500 Sunucu hatası",
@@ -39,7 +39,7 @@
           }
         }
       },
-      "id": "a892916b-4b6b-4612-8eaa-bd96da456f07"
+      "id": "995d62c8-62f9-4609-9d8e-61683dcbba6b"
     },
     {
       "name": "POST /notes/create",
@@ -49,14 +49,14 @@
         0,
         0
       ],
-      "webhookId": "e1f8c54b-4ce6-4f0c-b9fc-6794317941ad",
+      "webhookId": "6ea0245d-ea67-4333-9b5c-41b89c53155e",
       "parameters": {
         "httpMethod": "POST",
         "path": "notes/create",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "dfe3ac4e-668a-4977-b1a2-e7b7e0c54967"
+      "id": "2c0e978b-d129-4c9b-a8eb-f3697b3a6c9b"
     },
     {
       "name": "Not ekle: token özeti",
@@ -70,7 +70,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /notes/create').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "8a41c80e-a89c-4fad-bc3c-24dffba82132"
+      "id": "eac94810-9b0f-4fd3-a8c0-0aeff9d868ae"
     },
     {
       "name": "Not ekle: oturum",
@@ -97,7 +97,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "bdb4d210-d898-4403-827e-b064918570a9"
+      "id": "45b733ed-d7ce-45bf-988a-7d9ba885ff2f"
     },
     {
       "name": "Not ekle: oturum geçerli mi?",
@@ -116,7 +116,7 @@
           },
           "conditions": [
             {
-              "id": "fa9f1704-19b7-47b4-ac17-d2b4b0ec7dab",
+              "id": "0b3e3bbe-98b9-4268-9389-8c48765ebbb0",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -130,7 +130,7 @@
         },
         "options": {}
       },
-      "id": "c7829d41-26ab-403d-ac64-be45b91f6a34"
+      "id": "b2cc0974-5502-4603-bc5b-011ff66c0987"
     },
     {
       "name": "Not ekle: 401",
@@ -155,7 +155,7 @@
           }
         }
       },
-      "id": "462aaa45-4ffc-467a-aa1f-34347b65af41"
+      "id": "65ede7ca-065c-40bf-8a89-51308f0fee5e"
     },
     {
       "name": "Not ekle: doğrula",
@@ -169,7 +169,7 @@
         "jsCode": "// Not ekleme isteğini doğrular ve not belgesini hazırlar.\nconst crypto = require('crypto');\nconst b = $('POST /notes/create').first().json.body || {};\nconst user_id = $('Not ekle: oturum').first().json.user_id;\nconst s = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst course_id = s(b.course_id);\nconst title = s(b.title).replace(/\\s+/g, ' ');\nconst content = s(b.content).replace(/\\r\\n/g, '\\n');\nconst source = s(b.source) || 'text';\nconst fail = (message) => [{ json: { valid: false, response: { ok: false, error: { code: 'VALIDATION_ERROR', message } } } }];\n\nif (!course_id) return fail('Ders seçilmelidir.');\nif (!title || title.length > 200) return fail('Not başlığı 1-200 karakter arasında olmalıdır.');\nif (content.length < 20 || content.length > 15000) return fail('Not metni 20-15000 karakter arasında olmalıdır.');\nif (!['text', 'txt', 'pdf'].includes(source)) return fail(\"Kaynak 'text', 'txt' veya 'pdf' olmalıdır.\");\n\nconst note = { id: crypto.randomUUID(), user_id, course_id, title, content, source, created_at: new Date().toISOString() };\nreturn [{ json: { valid: true, note, response: { ok: true, data: { note: { id: note.id, title, created_at: note.created_at } } } } }];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "cac0c994-f020-4bf8-929c-bae3656a6374"
+      "id": "5d518fdd-23df-42dd-a092-dc2de8860d85"
     },
     {
       "name": "Not ekle: alanlar geçerli mi?",
@@ -188,7 +188,7 @@
           },
           "conditions": [
             {
-              "id": "e4de85a9-552d-4bf4-a778-b0009eba04f2",
+              "id": "6e3b5cb6-1991-4b77-9f3f-ec94c584bcab",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -202,7 +202,7 @@
         },
         "options": {}
       },
-      "id": "909853f5-b9ea-467a-8655-63eed416d9cc"
+      "id": "e155c57c-d1ac-4030-bdab-6d6ce2684032"
     },
     {
       "name": "400 Geçersiz not",
@@ -227,7 +227,7 @@
           }
         }
       },
-      "id": "ae72f7db-61dd-4606-96e6-cd94f5d85a33"
+      "id": "1ac919b5-da10-402f-bf66-dbf9482f01be"
     },
     {
       "name": "Not ekle: ders",
@@ -255,7 +255,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "40c42b01-54b1-4155-8127-91558a38ce1f"
+      "id": "6b1c78d5-2572-41c4-a98b-c56e6ea00883"
     },
     {
       "name": "Not ekle: ders var mı?",
@@ -274,7 +274,7 @@
           },
           "conditions": [
             {
-              "id": "29aea04b-b518-4a60-a361-64a76717f8a0",
+              "id": "d554e5c8-64ce-4b52-be3e-788eaf63267e",
               "leftValue": "={{ !!$json.id }}",
               "rightValue": "",
               "operator": {
@@ -288,7 +288,7 @@
         },
         "options": {}
       },
-      "id": "b6625c1f-f944-4ea9-b4b1-4192ddf9983b"
+      "id": "9a8bc51f-20a7-4d28-915d-7e07406252af"
     },
     {
       "name": "404 Ders yok",
@@ -313,7 +313,7 @@
           }
         }
       },
-      "id": "91302489-f251-4767-97ed-0f5fff77a26f"
+      "id": "24ad5a18-69b8-4370-b201-05efee5d4104"
     },
     {
       "name": "Not ekle: belge",
@@ -326,7 +326,7 @@
       "parameters": {
         "jsCode": "// Eklenecek not belgesi (doğrulama düğümünden)\nreturn [{ json: $('Not ekle: doğrula').first().json.note }];\n"
       },
-      "id": "0b0618f8-7433-4efb-a127-75284c66bf0d"
+      "id": "d4777fd2-e6a5-4cf6-ba8a-3ad29343ce07"
     },
     {
       "name": "Not ekle: kaydet",
@@ -351,7 +351,7 @@
           "dateFields": "created_at"
         }
       },
-      "id": "27871fd1-f62e-47a3-b073-68b170d83976"
+      "id": "66beeb2e-81d7-4d4b-816d-bbd1cfc927fd"
     },
     {
       "name": "201 Not eklendi",
@@ -376,7 +376,7 @@
           }
         }
       },
-      "id": "8f94777d-2004-4d16-971c-9a618e913d43"
+      "id": "5a79ee56-8a00-47bd-b8b1-8e149b08bc96"
     },
     {
       "name": "POST /notes/list",
@@ -386,14 +386,14 @@
         0,
         480
       ],
-      "webhookId": "09ca563b-f3d5-4394-b266-96479cc57221",
+      "webhookId": "0c8aeee3-bb2f-49e7-9915-0302e6034307",
       "parameters": {
         "httpMethod": "POST",
         "path": "notes/list",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "95b0a51c-bbc5-44e4-8f64-23a2188ab978"
+      "id": "adbbb9cd-54aa-4ff4-9be9-6546595c2783"
     },
     {
       "name": "Notlar: token özeti",
@@ -407,7 +407,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /notes/list').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "d397d69a-fb8a-4617-a02e-823552cde926"
+      "id": "db00bc62-552d-4cdc-9efd-7bebba9ed9c4"
     },
     {
       "name": "Notlar: oturum",
@@ -434,7 +434,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "a077227d-fa8f-4e2b-988c-af2d9e336c32"
+      "id": "e16c4fd0-00c6-4a7f-abab-6bfb1e41b1e3"
     },
     {
       "name": "Notlar: oturum geçerli mi?",
@@ -453,7 +453,7 @@
           },
           "conditions": [
             {
-              "id": "01bd8420-9dc0-4b31-92b1-19d2e2a523bd",
+              "id": "90565f69-b287-445f-87c9-0b0cfa452f67",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -467,7 +467,7 @@
         },
         "options": {}
       },
-      "id": "f1a77b2d-58bb-48d1-81da-b60f00fb2e71"
+      "id": "bcf37fdc-57c3-4b7a-bbff-7d7fdf9ac7ad"
     },
     {
       "name": "Notlar: 401",
@@ -492,7 +492,7 @@
           }
         }
       },
-      "id": "80f461c2-6138-4322-9100-05d5bb47e095"
+      "id": "9906d52a-2b70-4c20-b84c-98f493d1f6c9"
     },
     {
       "name": "Notlar: ders",
@@ -520,7 +520,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "fa3a6407-e44e-4984-ad44-aa89b2b0863d"
+      "id": "5bb8aa9b-f212-4231-b114-62d46d214229"
     },
     {
       "name": "Notlar: ders var mı?",
@@ -539,7 +539,7 @@
           },
           "conditions": [
             {
-              "id": "56de5d30-f303-4e9b-b17a-7705c068de6d",
+              "id": "5589d765-008a-4775-9626-aa9d85b8401e",
               "leftValue": "={{ !!$json.id }}",
               "rightValue": "",
               "operator": {
@@ -553,7 +553,7 @@
         },
         "options": {}
       },
-      "id": "3c2eb710-aec7-4de0-9b01-5c9d89e18341"
+      "id": "d58a1d8e-b491-4370-a8c9-9e2b9e377688"
     },
     {
       "name": "404 Notlar: ders yok",
@@ -578,7 +578,7 @@
           }
         }
       },
-      "id": "416a42f1-5837-4b23-9c35-b8ed582bbe89"
+      "id": "8009e46a-e601-4a8c-b79c-1511e03296a0"
     },
     {
       "name": "Notlar: notlar",
@@ -607,7 +607,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "d8d60748-93ab-4b40-b947-1c6ac9eaf5e9"
+      "id": "439b13d6-915e-4def-bda8-2daf97da4c8b"
     },
     {
       "name": "Notlar: birleştir",
@@ -621,7 +621,7 @@
         "jsCode": "// Dersin notlarını önizleme ve özet durumu ile döndürür (en yeni önce).\nconst iso = (v) => (v ? new Date(v).toISOString() : null);\nconst notes = $input.all().map((i) => i.json).filter((d) => d && d.id)\n  .map((n) => ({\n    id: n.id,\n    title: n.title,\n    preview: String(n.content || '').replace(/\\s+/g, ' ').slice(0, 160),\n    has_summary: !!(n.summary && n.summary.short),\n    source: n.source || 'text',\n    created_at: iso(n.created_at),\n  }))\n  .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));\nreturn [{ json: { response: { ok: true, data: { notes } } } }];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "fe9b9b24-a476-4673-852c-9633ba9196dc"
+      "id": "21140ad2-cf6c-4eef-8954-9a9b88c50217"
     },
     {
       "name": "200 Not listesi",
@@ -646,7 +646,7 @@
           }
         }
       },
-      "id": "92091560-53ba-4221-8ed0-d52fa3126c9b"
+      "id": "a9b3690b-d9c4-46f7-8e1e-694cdae3c62f"
     },
     {
       "name": "POST /notes/summarize",
@@ -656,14 +656,14 @@
         0,
         960
       ],
-      "webhookId": "3f421334-e8a5-4aff-90f4-cbdc943d8d89",
+      "webhookId": "dc2b9b7e-c431-4838-839a-7b8137d42d39",
       "parameters": {
         "httpMethod": "POST",
         "path": "notes/summarize",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "d58ee0a7-2aca-4935-8232-21bb61adb053"
+      "id": "6fbd65b0-1d49-45e6-a056-90c3b5b3c71d"
     },
     {
       "name": "Özet: token özeti",
@@ -677,7 +677,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /notes/summarize').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "4357d9b9-9043-40b4-bac1-92dc6a4e1264"
+      "id": "bfa91fb3-6933-424c-95f0-2b0dede68a0b"
     },
     {
       "name": "Özet: oturum",
@@ -704,7 +704,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "ee162764-8d41-484f-8a18-9e283c16086c"
+      "id": "d80b06eb-cb9d-4e3e-97e2-2d2f4a041a65"
     },
     {
       "name": "Özet: oturum geçerli mi?",
@@ -723,7 +723,7 @@
           },
           "conditions": [
             {
-              "id": "a9dc2c2d-0e38-4753-b1a7-49c0fccb441c",
+              "id": "2159924d-94a6-492b-91c9-ab2e2dab0dad",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -737,7 +737,7 @@
         },
         "options": {}
       },
-      "id": "c96780b1-3352-480e-a108-7e5fc9a3ef3e"
+      "id": "975e6cf8-ffe3-40b2-9a66-23196f70fe22"
     },
     {
       "name": "Özet: 401",
@@ -762,7 +762,7 @@
           }
         }
       },
-      "id": "4d6758ba-76af-436d-83dc-e526bee0730a"
+      "id": "f48a6d38-7438-46fc-a031-1f075ff6d729"
     },
     {
       "name": "Özet: istek",
@@ -775,7 +775,7 @@
       "parameters": {
         "jsCode": "// Özet isteğini okur.\nconst b = $('POST /notes/summarize').first().json.body || {};\nconst s = (v) => (v === null || v === undefined ? '' : String(v).trim());\nreturn [{\n  json: {\n    user_id: $('Özet: oturum').first().json.user_id,\n    note_id: s(b.note_id) || '-',\n    force: b.force === true || b.force === 'true',\n    model: s(b.model) || null,\n  },\n}];\n"
       },
-      "id": "5fe4089c-f966-4529-a429-e5fb54197198"
+      "id": "282cf59e-444b-45a2-a5a8-d7912b60b07b"
     },
     {
       "name": "Özet: not",
@@ -802,7 +802,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "e10b9372-dc4c-404c-8978-c342663ce60c"
+      "id": "a58ad804-cbe0-42b1-a6b8-5fc030c65dc4"
     },
     {
       "name": "Özet: not var mı?",
@@ -821,7 +821,7 @@
           },
           "conditions": [
             {
-              "id": "cb450621-2e53-43a1-856c-f2d76855ec80",
+              "id": "e42f7331-dda0-421a-9910-629166a1c47c",
               "leftValue": "={{ !!$json.id }}",
               "rightValue": "",
               "operator": {
@@ -835,7 +835,7 @@
         },
         "options": {}
       },
-      "id": "12f702b8-29fb-4787-b1f1-3f27b4aaa77d"
+      "id": "08ef1beb-526d-4b90-a2a3-ded86b76adc7"
     },
     {
       "name": "404 Not yok",
@@ -860,7 +860,7 @@
           }
         }
       },
-      "id": "3343f21e-ab8e-4427-a798-557a2608e9d3"
+      "id": "7bd5cdd0-1808-4ef0-8502-f20741a94aa7"
     },
     {
       "name": "Özet: kayıtlı özet kullanılsın mı?",
@@ -879,7 +879,7 @@
           },
           "conditions": [
             {
-              "id": "7fefee42-7a47-4c9f-bfeb-9282a84c0e96",
+              "id": "a74c8a47-4ca0-4de8-a75f-d0f0a3162163",
               "leftValue": "={{ !$('Özet: istek').first().json.force && !!($json.summary && $json.summary.short) }}",
               "rightValue": "",
               "operator": {
@@ -893,7 +893,7 @@
         },
         "options": {}
       },
-      "id": "803ba4c5-df43-4dbc-954e-54bbe9087a8a"
+      "id": "cd499c10-8fbb-4a74-b566-f94cd6ae6259"
     },
     {
       "name": "200 Kayıtlı özet",
@@ -918,7 +918,7 @@
           }
         }
       },
-      "id": "8d273f80-1ce6-45ee-8f20-9de1b1fc6ad3"
+      "id": "1294e469-32c3-40e8-85f5-a9a651d8b2e0"
     },
     {
       "name": "Özet: prompt hazırla",
@@ -931,7 +931,7 @@
       "parameters": {
         "jsCode": "// Özet için Ollama isteğini hazırlar. \"format\" ile JSON şeması zorlanır.\nconst n = $('Özet: not').first().json;\nconst r = $('Özet: istek').first().json;\nconst schema = {\n  type: 'object',\n  properties: {\n    short: { type: 'string' },\n    key_points: { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 7 },\n    keywords: { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 8 },\n    flashcards: {\n      type: 'array', minItems: 4, maxItems: 8,\n      items: {\n        type: 'object',\n        properties: { front: { type: 'string' }, back: { type: 'string' } },\n        required: ['front', 'back'],\n      },\n    },\n  },\n  required: ['short', 'key_points', 'keywords', 'flashcards'],\n};\nconst system = [\n  'Sen üniversite öğrencileri için ders notlarını özetleyen bir asistansın.',\n  'KURALLAR:',\n  '1. YALNIZCA Türkçe yaz. Çince, Japonca, Korece veya Kiril alfabesinden tek bir karakter bile kullanma.',\n  '2. Yalnızca nottaki bilgileri kullan; notta olmayan bilgi ekleme.',\n  '3. \"short\": notun 2-3 cümlelik özeti.',\n  '4. \"key_points\": notun en önemli 3-7 maddesi; her madde kısa tek bir cümle.',\n  '5. \"keywords\": notun 3-8 anahtar kavramı (tek kelime veya kısa ifade).',\n  '6. \"flashcards\": sınav öncesi hızlı tekrar için 4-8 hap bilgi kartı. \"front\" kısa bir kavram veya soru '\n    + '(en fazla 8 kelime), \"back\" ezberlenecek bilgi (tek cümle; formül varsa formülü yaz).',\n  '7. Yanıtın yalnızca istenen JSON nesnesi olsun.',\n].join('\\n');\nreturn [{\n  json: {\n    route: 'text',\n    body: {\n      model: r.model, // null ise .env içindeki LLM_MODEL\n      stream: false,\n      format: schema,\n      options: { temperature: 0.2, num_ctx: 8192 },\n      messages: [\n        { role: 'system', content: system },\n        { role: 'user', content: `Ders notu başlığı: ${n.title}\\n\\nDers notu:\\n${n.content}` },\n      ],\n    },\n  },\n}];\n"
       },
-      "id": "f42f6b34-7419-4d39-b86e-77ac019f76eb"
+      "id": "1a9089bc-cbee-4885-a5df-ffb5e4dedb69"
     },
     {
       "name": "Özet: kayıt belgesi",
@@ -944,7 +944,7 @@
       "parameters": {
         "jsCode": "// Özeti nota kaydetmek için güncelleme belgesini ve istemci yanıtını hazırlar.\nconst n = $('Özet: not').first().json;\nconst v = $input.first().json;\nconst now = new Date().toISOString();\nreturn [{\n  json: {\n    id: n.id,\n    summary: v.summary,\n    summary_model: v.model,\n    summarized_at: now,\n    response: { ok: true, data: { note_id: n.id, summary: v.summary, model: v.model, cached: false } },\n  },\n}];\n"
       },
-      "id": "700138cd-9fa3-4cdc-b028-ab9b5abe1433"
+      "id": "7b86a3ba-25ef-408e-b430-0730460d08bc"
     },
     {
       "name": "Özet: Ollama",
@@ -965,7 +965,7 @@
           "timeout": 120000
         }
       },
-      "id": "e3e89946-9268-42ec-bf5c-0e36bde6727d"
+      "id": "032d6816-e7b7-4742-a1f0-f98a06bd9bf2"
     },
     {
       "name": "Özet: yanıtı doğrula",
@@ -979,7 +979,7 @@
         "jsCode": "// Model özetini doğrular. Kurallardan biri bozulursa yeniden denenir ($runIndex: deneme sırası).\nconst r = $input.first().json;\nconst raw = (r.message && typeof r.message.content === 'string') ? r.message.content : '';\nconst FOREIGN = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯Ѐ-ӿ]/;\nconst clean = (v) => String(v ?? '').trim();\nconst list = (a, max) => (Array.isArray(a) ? [...new Set(a.map(clean).filter(Boolean))].slice(0, max) : []);\n\nlet problem = null;\nlet summary = null;\ntry {\n  const j = JSON.parse(raw.trim().replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/, ''));\n  // Hap bilgi kartları: boş veya aşırı uzun kartlar atılır, en fazla 8 kart\n  const cards = Array.isArray(j.flashcards)\n    ? j.flashcards.map((c) => ({ front: clean(c && c.front), back: clean(c && c.back) }))\n        .filter((c) => c.front && c.back && c.front.length <= 120 && c.back.length <= 300).slice(0, 8)\n    : [];\n  summary = { short: clean(j.short), key_points: list(j.key_points, 7), keywords: list(j.keywords, 8), flashcards: cards };\n  if (!summary.short) problem = 'özet boş';\n  else if (summary.key_points.length < 3) problem = 'en az 3 ana madde gerekli';\n  else if (summary.keywords.length < 3) problem = 'en az 3 anahtar kavram gerekli';\n  else if (summary.flashcards.length < 4) problem = 'en az 4 hap bilgi kartı gerekli';\n  else if (FOREIGN.test(JSON.stringify(summary))) problem = 'Türkçe dışı karakter';\n} catch (e) {\n  problem = 'geçersiz JSON';\n}\nreturn [{ json: { valid: problem === null, problem, attempt: $runIndex + 1, summary, model: r.model || null } }];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "3d19d4ef-b8fd-43e6-b781-c14e2ab8572c"
+      "id": "cce5efb7-31a3-43da-8e65-e57f216853d6"
     },
     {
       "name": "Özet: yanıt geçerli mi?",
@@ -998,7 +998,7 @@
           },
           "conditions": [
             {
-              "id": "1f28b494-dcb0-4e75-83a2-5b7768a5ff4f",
+              "id": "4c21b0d2-316e-4837-8b26-15d48a99b040",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -1012,7 +1012,7 @@
         },
         "options": {}
       },
-      "id": "a700f786-56d6-440b-9d05-f49409119c70"
+      "id": "cdb06833-ed0c-4802-b909-6e799184d619"
     },
     {
       "name": "Özet: tekrar denensin mi?",
@@ -1031,7 +1031,7 @@
           },
           "conditions": [
             {
-              "id": "ff3d3796-4316-4e5a-b4e5-f8f9640567cf",
+              "id": "8606f2c6-4b9d-4297-9e58-4061bbfa7e25",
               "leftValue": "={{ $json.attempt }}",
               "rightValue": 3,
               "operator": {
@@ -1044,7 +1044,7 @@
         },
         "options": {}
       },
-      "id": "d9f2eb7d-08b6-49ad-afe0-cd8e4837e1f3"
+      "id": "a0b04c9c-83d2-48a7-bc26-0f6f848622b3"
     },
     {
       "name": "Özet: 503",
@@ -1069,7 +1069,7 @@
           }
         }
       },
-      "id": "0e4ce461-7cc4-46f9-855f-960aa326ae9e"
+      "id": "05662e3f-3264-4c7e-a695-cf33345dcc22"
     },
     {
       "name": "Özet: 502",
@@ -1094,7 +1094,7 @@
           }
         }
       },
-      "id": "79a8caae-d1ac-4d88-962b-47a0a637a495"
+      "id": "7231a5e4-2c78-4bf7-83ab-93d987f6e9d1"
     },
     {
       "name": "Özet: nota kaydet",
@@ -1121,7 +1121,7 @@
         }
       },
       "executeOnce": true,
-      "id": "c7e6a0d5-c817-44a5-90aa-55d8d89e9385"
+      "id": "7737b2d5-234c-4db0-a1f0-70484b528543"
     },
     {
       "name": "200 Özet",
@@ -1146,7 +1146,7 @@
           }
         }
       },
-      "id": "d5474cd0-00e5-4a0d-bdb6-b87471f44fe8"
+      "id": "c2428d91-a0ef-4274-bb8b-9df12fce495e"
     },
     {
       "name": "POST /notes/extract-pdf",
@@ -1156,14 +1156,14 @@
         0,
         1440
       ],
-      "webhookId": "846ca041-c49f-46f0-ba40-3a5b94c78002",
+      "webhookId": "45662ef5-41c6-4da6-8854-e23253b99873",
       "parameters": {
         "httpMethod": "POST",
         "path": "notes/extract-pdf",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "6a31904e-0ab1-4b15-90d7-81a1de2ff9ab"
+      "id": "cceea84e-a616-4137-b3e9-41621eeea7b5"
     },
     {
       "name": "PDF: token özeti",
@@ -1177,7 +1177,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /notes/extract-pdf').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "a9cdd8b5-1d65-43ae-a58c-4db11ff713fc"
+      "id": "f8706c1d-53cb-4a31-8b5d-db7105a194a9"
     },
     {
       "name": "PDF: oturum",
@@ -1204,7 +1204,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "add03a24-1437-4ed1-a65f-9a493e8d1f09"
+      "id": "9cb196f5-0fea-4269-b71a-d56789bb9fd6"
     },
     {
       "name": "PDF: oturum geçerli mi?",
@@ -1223,7 +1223,7 @@
           },
           "conditions": [
             {
-              "id": "0ac6d0b2-1831-4ae5-98e5-8ac177e15cf5",
+              "id": "ba517ab9-686c-456c-8468-b370abe91c40",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -1237,7 +1237,7 @@
         },
         "options": {}
       },
-      "id": "edd66f06-9c12-49d6-a4d8-af4c5a73ace3"
+      "id": "c7d1b659-497b-47e5-a5e9-8fda8d453cf2"
     },
     {
       "name": "PDF: 401",
@@ -1262,7 +1262,7 @@
           }
         }
       },
-      "id": "486682b0-0000-4114-a0f3-2172d054908b"
+      "id": "9e26454d-6c5c-42ab-aceb-d6ea17776d9a"
     },
     {
       "name": "PDF: dosya",
@@ -1276,7 +1276,7 @@
         "jsCode": "// Yüklenen dosyayı bulur ve \"pdf\" adlı ikili alana taşır (n8n çok parçalı formda alan adını\n// sürüme göre farklı adlandırabildiği için ilk dosya alınır).\nconst req = $('POST /notes/extract-pdf').first();\nconst files = req.binary || {};\nconst key = Object.keys(files)[0];\nconst fail = (message) => [{ json: { valid: false, response: { ok: false, error: { code: 'VALIDATION_ERROR', message } } } }];\nif (!key) return fail('PDF dosyası gönderilmedi.');\nconst file = files[key];\nconst name = String(file.fileName || '');\nconst isPdf = /\\.pdf$/i.test(name) || String(file.mimeType || '').includes('pdf');\nif (!isPdf) return fail('Yalnızca PDF dosyası yüklenebilir.');\nreturn [{ json: { valid: true, file_name: name }, binary: { pdf: file } }];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "98f7e745-f2a9-4d72-af8d-5ece010268a3"
+      "id": "4af252bb-2275-4b30-bf50-9501f3ccaa66"
     },
     {
       "name": "PDF: dosya geçerli mi?",
@@ -1295,7 +1295,7 @@
           },
           "conditions": [
             {
-              "id": "a8d80423-dcd8-4a68-b4c3-8d83088efcd0",
+              "id": "fbe5b1f5-9e37-4228-9b50-116b3d3e81ae",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -1309,7 +1309,7 @@
         },
         "options": {}
       },
-      "id": "aa17fe89-f28e-4e07-ae29-5c924bdf7cbc"
+      "id": "0aa09af0-5221-45fc-a121-7309487985c1"
     },
     {
       "name": "400 PDF: geçersiz dosya",
@@ -1334,7 +1334,7 @@
           }
         }
       },
-      "id": "5d5d5f69-3911-44d4-a0cb-96427b5c9526"
+      "id": "03827163-dc6b-4937-b0bf-81dee4a1b2a0"
     },
     {
       "name": "PDF: metni çıkar",
@@ -1350,7 +1350,7 @@
         "binaryPropertyName": "pdf",
         "options": {}
       },
-      "id": "35f185d6-fb76-423f-9522-46e62ccae3f9"
+      "id": "efa36376-2140-435d-bd11-494dd30c81fc"
     },
     {
       "name": "422 PDF okunamadı",
@@ -1375,7 +1375,7 @@
           }
         }
       },
-      "id": "a4b4a129-24f4-48d2-b06d-66758f7defcf"
+      "id": "0c390ae3-f2bf-4451-8f29-cdec130ac6c4"
     },
     {
       "name": "PDF: metni temizle",
@@ -1389,7 +1389,7 @@
         "jsCode": "// PDF'ten çıkan metni temizler: satır sonu tireleri, fazla boşluk ve boş satırlar.\nconst r = $input.first().json;\nconst name = $('PDF: dosya').first().json.file_name;\nlet text = String(r.text || '')\n  .replace(/\\r\\n?/g, '\\n')\n  .replace(/(\\p{L})-\\n(\\p{L})/gu, '$1$2')   // satır sonunda bölünmüş kelimeler: \"geliş-\\ntirilen\"\n  .replace(/[ \\t]+/g, ' ')\n  .replace(/ *\\n */g, '\\n')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .replace(/([^.!?:;\\n])\\n(?!\\n)/g, '$1 ')  // paragraf içindeki satır kırılımları: PDF satırları birleşir\n  .trim();\nif (text.length < 20) {\n  return [{ json: { valid: false, response: { ok: false, error: { code: 'PDF_NO_TEXT',\n    message: 'PDF\\'te seçilebilir metin bulunamadı. Taranmış (resim) bir belge olabilir; metni elle yapıştırmayı deneyin.' } } } }];\n}\nreturn [{\n  json: {\n    valid: true,\n    response: {\n      ok: true,\n      data: {\n        text,\n        characters: text.length,\n        pages: Number(r.numpages || r.numPages || 0) || null,\n        file_name: name,\n        title: name.replace(/\\.pdf$/i, ''),\n      },\n    },\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "aeca3b55-749e-48d4-aab4-a51b738c474c"
+      "id": "9e993de9-d8ec-45b4-81ec-87f239fe4965"
     },
     {
       "name": "PDF: metin var mı?",
@@ -1408,7 +1408,7 @@
           },
           "conditions": [
             {
-              "id": "6877cb40-14b8-43b6-82a1-addc7497be3e",
+              "id": "6519047f-26e0-455b-81d2-507531313db8",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -1422,7 +1422,7 @@
         },
         "options": {}
       },
-      "id": "60d75ffb-c318-45ad-8790-bf951f623ad1"
+      "id": "aa548fa9-adad-4012-b8b4-0dc4d0da85ce"
     },
     {
       "name": "200 PDF metni",
@@ -1447,7 +1447,7 @@
           }
         }
       },
-      "id": "e67b18c3-f4b6-4385-96fb-ef5e6a45cf47"
+      "id": "cfce4d39-c8d8-4a78-bccf-3f4e59ac5dd3"
     },
     {
       "name": "422 PDF: metin yok",
@@ -1472,7 +1472,7 @@
           }
         }
       },
-      "id": "dfd9db25-3287-4dca-a9cf-0f43618086d0"
+      "id": "df6168b9-2164-4248-8296-9bc34405ff4c"
     },
     {
       "name": "POST /notes/delete",
@@ -1482,14 +1482,14 @@
         0,
         1840
       ],
-      "webhookId": "358c1937-c886-4575-9143-d91f64fb45ca",
+      "webhookId": "3000386b-007d-40e5-bb0a-f2e947ccaba6",
       "parameters": {
         "httpMethod": "POST",
         "path": "notes/delete",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "f408fd31-c777-462a-a687-74bfd900a707"
+      "id": "1d2df4c7-7a04-4721-93b7-1dc719549931"
     },
     {
       "name": "Not sil: token özeti",
@@ -1503,7 +1503,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /notes/delete').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "2830bca5-4e09-42ec-8eb0-f55e05d16fcd"
+      "id": "677d7a2f-8a73-47ca-860e-4e1f756d02e8"
     },
     {
       "name": "Not sil: oturum",
@@ -1530,7 +1530,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "17dbf6d4-6a6b-423a-850f-15a89900d2d5"
+      "id": "672f6f3b-9c83-4d33-a435-d26729588dc2"
     },
     {
       "name": "Not sil: oturum geçerli mi?",
@@ -1549,7 +1549,7 @@
           },
           "conditions": [
             {
-              "id": "94546c70-ef11-4d7a-a457-8464d905383f",
+              "id": "cf6b1f5b-794a-44b1-873c-2ce9da7d309d",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -1563,7 +1563,7 @@
         },
         "options": {}
       },
-      "id": "81ffc525-7172-40da-a7f3-49b1654e1584"
+      "id": "acb407b3-8d91-4295-91e9-281118583337"
     },
     {
       "name": "Not sil: 401",
@@ -1588,7 +1588,7 @@
           }
         }
       },
-      "id": "c5180eb7-42b3-4440-bcef-3dff19fe3a08"
+      "id": "bf20eaab-b8ed-4117-91b4-ce6de6cfe25b"
     },
     {
       "name": "Not sil: not",
@@ -1616,7 +1616,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "831e026c-ca90-43d0-b1ad-0f07cf40bb14"
+      "id": "9c574469-4901-470a-b465-fe6c40bb45e1"
     },
     {
       "name": "Not sil: not var mı?",
@@ -1635,7 +1635,7 @@
           },
           "conditions": [
             {
-              "id": "5d5aded5-1fba-4336-9811-4940f91f8756",
+              "id": "e717c729-1ea2-45a0-9e0a-62dadad3a942",
               "leftValue": "={{ !!$json.id }}",
               "rightValue": "",
               "operator": {
@@ -1649,7 +1649,7 @@
         },
         "options": {}
       },
-      "id": "79150b4c-5db9-4170-abbe-305cd3e94429"
+      "id": "70ac294f-e42c-4963-ac40-9d071f6ebd21"
     },
     {
       "name": "404 Not sil: not yok",
@@ -1674,7 +1674,7 @@
           }
         }
       },
-      "id": "45167653-f443-4379-96b3-523b459f0c59"
+      "id": "c25c9dd0-46d8-4f1a-bc4a-6282e970a130"
     },
     {
       "name": "Not sil: testler",
@@ -1701,7 +1701,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "e2c76c59-f0de-4115-ba61-c049fad379f2"
+      "id": "42870426-8175-4fdc-812a-7704d57132f0"
     },
     {
       "name": "Not sil: plan",
@@ -1714,7 +1714,7 @@
       "parameters": {
         "jsCode": "// Silinecek notun testlerini toplar (test sonuçları test kimliği üzerinden silinir).\nconst note = $('Not sil: not').first().json;\nconst quiz_ids = $('Not sil: testler').all().map((i) => i.json.id).filter(Boolean);\nreturn [{ json: { note_id: note.id, user_id: note.user_id, title: note.title, quiz_ids } }];\n"
       },
-      "id": "31398854-85d6-43d1-9dd3-d213b2f1feb6"
+      "id": "6a4c935e-e7fb-4c87-a1f1-c2d49e935094"
     },
     {
       "name": "Not sil: quiz_attempts",
@@ -1738,7 +1738,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "bc24be65-5743-4def-af5a-1dee01c038af"
+      "id": "04f35d09-5622-4f3f-bac6-09d03f35d5e2"
     },
     {
       "name": "Not sil: quizzes",
@@ -1762,7 +1762,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "350e29a8-bf6b-4cea-a282-3db581adc6db"
+      "id": "f2aff1c3-fb7b-4e9b-a3e8-44040ad6a380"
     },
     {
       "name": "Not sil: notes",
@@ -1786,7 +1786,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "8761ea84-47af-45a8-8da5-5c363fdeb1a1"
+      "id": "0f9faaa5-ec73-42a8-af11-5120668b39a7"
     },
     {
       "name": "200 Not silindi",
@@ -1811,7 +1811,7 @@
           }
         }
       },
-      "id": "d45b69fa-dca5-4faf-8d5f-5d29feb6b2e3"
+      "id": "44e4d564-a988-4e78-bafd-c242022cc028"
     }
   ],
   "connections": {

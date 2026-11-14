@@ -14,7 +14,7 @@
         "width": 800,
         "height": 160
       },
-      "id": "fbc358e6-d348-4f73-a444-a37a3af75151"
+      "id": "26d8a866-0e0d-414f-a9b1-84ef1886de6e"
     },
     {
       "name": "500 Sunucu hatası",
@@ -39,7 +39,7 @@
           }
         }
       },
-      "id": "c1fa1f16-3a63-403b-8439-3d555db76dd5"
+      "id": "1b8b7312-d2cf-4ba1-a736-afd123804193"
     },
     {
       "name": "POST /courses/list",
@@ -49,14 +49,14 @@
         0,
         0
       ],
-      "webhookId": "668ebbaa-32d5-40bb-b602-e14044e2f75c",
+      "webhookId": "1e8c6009-2695-4698-bef0-3cf53ee01ab9",
       "parameters": {
         "httpMethod": "POST",
         "path": "courses/list",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "57542a00-c366-40d2-bbd9-9bf6375ae42e"
+      "id": "6e3d99b0-2c60-48ee-8e60-db9d5543dd6e"
     },
     {
       "name": "Liste: token özeti",
@@ -70,7 +70,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /courses/list').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "8983cab6-4938-40ff-ac6a-8bdf4a802bbf"
+      "id": "7359a3ec-2e66-42d2-84d1-e90c8d67c3ba"
     },
     {
       "name": "Liste: oturum",
@@ -97,7 +97,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "705ef144-14fd-4b11-9f19-27b6081210e5"
+      "id": "7c8229a3-c20b-4456-ade6-c1279e91323e"
     },
     {
       "name": "Liste: oturum geçerli mi?",
@@ -116,7 +116,7 @@
           },
           "conditions": [
             {
-              "id": "efeb37ea-4433-4842-a79e-32ebe79179f4",
+              "id": "639803b2-48d1-48e7-8d78-06a52c92ddfa",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -130,7 +130,7 @@
         },
         "options": {}
       },
-      "id": "8df36da1-6a6d-432a-850a-6fcf76d0c34f"
+      "id": "d55769d0-0380-4144-8dbe-447b78f5971e"
     },
     {
       "name": "Liste: 401",
@@ -155,7 +155,7 @@
           }
         }
       },
-      "id": "9a2e4859-b5c0-422f-9a7b-64f52445f607"
+      "id": "23f40589-6cce-4e43-8765-08ab9e52348a"
     },
     {
       "name": "Liste: dersler",
@@ -183,7 +183,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "e3f02f24-9274-469f-9252-4c2403b11e06"
+      "id": "e505787a-7ad3-44c5-9f22-bfb2ce95d024"
     },
     {
       "name": "Liste: notlar",
@@ -210,7 +210,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "aee6a849-c828-4f1a-aa6f-6557ea036bdf"
+      "id": "63b7a9da-3872-4d2f-a03b-64bcf9e8cf14"
     },
     {
       "name": "Liste: denemeler",
@@ -237,7 +237,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "3b92196d-3bea-4c8f-8f2a-5e0f6d0ce229"
+      "id": "83904f57-733b-46d9-85ee-296d8221ffdd"
     },
     {
       "name": "Liste: birleştir",
@@ -251,7 +251,7 @@
         "jsCode": "// Ders listesini not ve test istatistikleriyle birleştirir.\nconst iso = (v) => (v ? new Date(v).toISOString() : null);\nconst rows = (node) => $(node).all().map((i) => i.json).filter((d) => d && d.id);\nconst courses = rows('Liste: dersler');\nconst notes = rows('Liste: notlar');\nconst attempts = rows('Liste: denemeler');\nconst latest = (vals) => vals.filter(Boolean).map(iso).sort().pop() || null;\n\nconst out = courses.map((c) => {\n  const n = notes.filter((x) => x.course_id === c.id);\n  const a = attempts.filter((x) => x.course_id === c.id);\n  return {\n    id: c.id,\n    name: c.name,\n    note_count: n.length,\n    attempt_count: a.length,\n    avg_percent: a.length ? Math.round(a.reduce((s, x) => s + Number(x.percent || 0), 0) / a.length) : null,\n    last_activity: latest([c.created_at, ...n.map((x) => x.created_at), ...a.map((x) => x.created_at)]),\n  };\n}).sort((x, y) => x.name.localeCompare(y.name, 'tr'));\n\nreturn [{ json: { response: { ok: true, data: { courses: out } } } }];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "3f46a291-67a6-4d16-976a-7621ef0f0db6"
+      "id": "d913e67b-2f26-4435-aeef-dc820491fded"
     },
     {
       "name": "200 Ders listesi",
@@ -276,7 +276,7 @@
           }
         }
       },
-      "id": "26338acd-182f-4b82-938d-abdcdb799cf5"
+      "id": "734d40c2-8cda-4027-bc42-d10769680ac7"
     },
     {
       "name": "POST /courses/create",
@@ -286,14 +286,14 @@
         0,
         480
       ],
-      "webhookId": "96adf280-60f1-4904-80ae-3ee842628f2a",
+      "webhookId": "06c3fb43-6a6f-4a2c-8bb7-b4c5920fc0d7",
       "parameters": {
         "httpMethod": "POST",
         "path": "courses/create",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "122f8e18-b06c-409c-ac6a-100cb25fb8fa"
+      "id": "ebdfb61f-bf56-4c43-a816-4f95d3c2d8ba"
     },
     {
       "name": "Ekleme: token özeti",
@@ -307,7 +307,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /courses/create').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "2432d0cf-b67c-4434-aeca-7bfa2c8b34c6"
+      "id": "8b8584ca-63d4-44cd-a71c-73795cb3cfff"
     },
     {
       "name": "Ekleme: oturum",
@@ -334,7 +334,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "12318cfa-ac04-4b35-8c4a-03ffa1158bc3"
+      "id": "5f470922-9e98-457f-97e3-358c206faeae"
     },
     {
       "name": "Ekleme: oturum geçerli mi?",
@@ -353,7 +353,7 @@
           },
           "conditions": [
             {
-              "id": "2d8ba53d-6cbb-4c66-82ea-a52513744c9f",
+              "id": "264edd53-7039-4cb6-a736-a0bd86940bfa",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -367,7 +367,7 @@
         },
         "options": {}
       },
-      "id": "5fb8ba2f-eaab-44d6-a50f-77eadaa2ec0c"
+      "id": "f367701a-58a5-46c7-a3b6-78afd52ae6ed"
     },
     {
       "name": "Ekleme: 401",
@@ -392,7 +392,7 @@
           }
         }
       },
-      "id": "78cd60e6-4e34-48f1-9bae-0f90497ceb28"
+      "id": "48a230c0-60f8-4f6a-8d83-58bca3dac4fb"
     },
     {
       "name": "Ekleme: doğrula",
@@ -406,7 +406,7 @@
         "jsCode": "// Ders adını doğrular ve ders belgesini hazırlar.\nconst crypto = require('crypto');\nconst b = $('POST /courses/create').first().json.body || {};\nconst user_id = $('Ekleme: oturum').first().json.user_id;\nconst name = String(b.name ?? '').trim().replace(/\\s+/g, ' ');\nif (!name || name.length > 100) {\n  return [{ json: { valid: false, response: { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Ders adı 1-100 karakter arasında olmalıdır.' } } } }];\n}\nconst course = { id: crypto.randomUUID(), user_id, name, created_at: new Date().toISOString() };\nreturn [{\n  json: {\n    valid: true,\n    course,\n    response: { ok: true, data: { course: { id: course.id, name: course.name, created_at: course.created_at } } },\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "cec8ebad-8d21-43a9-859e-535824535665"
+      "id": "560c65c0-dac8-48b4-897e-5f6352d18bcf"
     },
     {
       "name": "Ekleme: ad geçerli mi?",
@@ -425,7 +425,7 @@
           },
           "conditions": [
             {
-              "id": "85907342-277a-404d-a1f2-61f844e99f43",
+              "id": "2f51addd-a16e-42a2-852b-91abae822985",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -439,7 +439,7 @@
         },
         "options": {}
       },
-      "id": "ee535b8d-cd69-491c-9e37-5242bf903da1"
+      "id": "6ea7f7fc-593f-4c6a-b714-aff209c9e1ba"
     },
     {
       "name": "400 Geçersiz ders adı",
@@ -464,7 +464,7 @@
           }
         }
       },
-      "id": "98d805f5-ff38-4f78-8874-3b36583d08b2"
+      "id": "5cdd5f5e-dd5f-4683-99fb-ad66d2ade933"
     },
     {
       "name": "Ekleme: aynı ad var mı",
@@ -492,7 +492,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "b8cd84dd-578b-4f93-8493-c8c492341adf"
+      "id": "67a4c4e5-72c8-4bbe-9910-dd3b6cf79d87"
     },
     {
       "name": "Ekleme: ders zaten var mı?",
@@ -511,7 +511,7 @@
           },
           "conditions": [
             {
-              "id": "48de157f-e6e5-439a-bc48-0387b06600db",
+              "id": "6753ce7c-a9e4-4a2e-8266-96f4f2ce5562",
               "leftValue": "={{ !!$json.id }}",
               "rightValue": "",
               "operator": {
@@ -525,7 +525,7 @@
         },
         "options": {}
       },
-      "id": "b86cf26b-b5a1-4f1c-8746-fa00c0146e2f"
+      "id": "9d8e07d6-c2d8-43b5-96f9-31f330d012fc"
     },
     {
       "name": "409 Ders zaten var",
@@ -550,7 +550,7 @@
           }
         }
       },
-      "id": "1833a787-caa4-44fc-9424-98a6d48382c9"
+      "id": "6ef524c6-c52f-4c54-8dfa-b03d0b2c501d"
     },
     {
       "name": "Ekleme: belge",
@@ -563,7 +563,7 @@
       "parameters": {
         "jsCode": "// Eklenecek ders belgesi (doğrulama düğümünden)\nreturn [{ json: $('Ekleme: doğrula').first().json.course }];\n"
       },
-      "id": "82cca7b0-3d97-4ab6-8cec-0092bd0487e5"
+      "id": "56962981-864e-4289-8063-fd7231f28c7a"
     },
     {
       "name": "Ekleme: ders ekle",
@@ -588,7 +588,7 @@
           "dateFields": "created_at"
         }
       },
-      "id": "70e0b8dc-50c0-4de7-8d2b-a8f621f1b573"
+      "id": "111bfda3-ed55-44f1-9787-edba47c764dd"
     },
     {
       "name": "201 Ders eklendi",
@@ -613,7 +613,7 @@
           }
         }
       },
-      "id": "d1f5b427-a14d-4fc5-b50d-faf8e620c878"
+      "id": "5f3356c9-6091-4567-9c8e-43e48bbefe82"
     },
     {
       "name": "POST /courses/update",
@@ -623,14 +623,14 @@
         0,
         960
       ],
-      "webhookId": "1facf6ac-b7c9-4c6d-8a44-c4dc3136af6c",
+      "webhookId": "f4f03576-9d18-4354-bffa-cba3416aa4a7",
       "parameters": {
         "httpMethod": "POST",
         "path": "courses/update",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "24dd14a7-cd69-490a-be26-3576e3dd460c"
+      "id": "00626c0e-e5c2-4522-a40e-665c902f5d78"
     },
     {
       "name": "Düzenle: token özeti",
@@ -644,7 +644,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /courses/update').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "737499e0-ecda-4ca6-a9b2-ab549ee66a54"
+      "id": "83d0ff26-45e7-4fe1-92b8-82a13b3180cf"
     },
     {
       "name": "Düzenle: oturum",
@@ -671,7 +671,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "fc18f350-a5b5-4b55-a178-9b353f108904"
+      "id": "6bae737b-212f-4eec-b48c-1f82048f65f3"
     },
     {
       "name": "Düzenle: oturum geçerli mi?",
@@ -690,7 +690,7 @@
           },
           "conditions": [
             {
-              "id": "2edb8acc-d5e3-46a4-ad24-60f98a7f4d3d",
+              "id": "db184c86-1605-4d85-86a3-059154aa52ac",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -704,7 +704,7 @@
         },
         "options": {}
       },
-      "id": "b9683d53-ef2a-48cf-a4b2-d22acff52951"
+      "id": "d8e0b98b-2f1e-4f09-9649-225c8622bda6"
     },
     {
       "name": "Düzenle: 401",
@@ -729,7 +729,7 @@
           }
         }
       },
-      "id": "b312a850-fde0-4f7a-a2ca-7938e46f2905"
+      "id": "bc8705d8-ecf2-4632-9991-45ecdd5d989d"
     },
     {
       "name": "Düzenle: doğrula",
@@ -743,7 +743,7 @@
         "jsCode": "// Ders adı değiştirme isteğini doğrular.\nconst b = $('POST /courses/update').first().json.body || {};\nconst user_id = $('Düzenle: oturum').first().json.user_id;\nconst s = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst course_id = s(b.course_id);\nconst name = s(b.name).replace(/\\s+/g, ' ');\nconst fail = (message) => [{ json: { valid: false, response: { ok: false, error: { code: 'VALIDATION_ERROR', message } } } }];\nif (!course_id) return fail('Ders seçilmelidir.');\nif (!name || name.length > 100) return fail('Ders adı 1-100 karakter arasında olmalıdır.');\nreturn [{ json: { valid: true, user_id, course_id, name } }];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "c1aa751c-9ba1-48ac-9949-451cabab1857"
+      "id": "ecfd8ca3-3b0f-4ffd-b13c-66e58f5e743c"
     },
     {
       "name": "Düzenle: alanlar geçerli mi?",
@@ -762,7 +762,7 @@
           },
           "conditions": [
             {
-              "id": "bdf2e904-51cf-454d-ae96-5c8f685f08e8",
+              "id": "c545eede-4c3d-4240-a75c-a35bb1b2445d",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -776,7 +776,7 @@
         },
         "options": {}
       },
-      "id": "585792bb-38ce-40dd-b11e-32cc469e3b98"
+      "id": "7d043e42-b1e4-48f5-9891-07b7cd3b97e7"
     },
     {
       "name": "400 Düzenle: geçersiz",
@@ -801,7 +801,7 @@
           }
         }
       },
-      "id": "f15e91a8-3ce8-460b-ac78-b2e487d4847b"
+      "id": "7606522b-6ebb-4214-8ab5-fbba790bbd67"
     },
     {
       "name": "Düzenle: ders",
@@ -829,7 +829,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "990f8464-d97a-4152-af1e-92c2bafdd375"
+      "id": "cb51be09-7c0f-4a9d-b424-77093556c5b5"
     },
     {
       "name": "Düzenle: ders var mı?",
@@ -848,7 +848,7 @@
           },
           "conditions": [
             {
-              "id": "01ffec7d-7eb4-4108-b4d9-2522be990fa7",
+              "id": "85b8fec2-57c1-4547-becf-8447c0a50711",
               "leftValue": "={{ !!$json.id }}",
               "rightValue": "",
               "operator": {
@@ -862,7 +862,7 @@
         },
         "options": {}
       },
-      "id": "09d4cd1f-fae6-43ad-b92a-1866b57c5552"
+      "id": "04e1f376-4059-4c68-9cc8-80dc46be23bb"
     },
     {
       "name": "404 Düzenle: ders yok",
@@ -887,7 +887,7 @@
           }
         }
       },
-      "id": "468a4da2-7a9d-4cc9-b92c-1682b4e77a47"
+      "id": "8be387a9-c0f0-48bc-8be6-1ebe19631f7d"
     },
     {
       "name": "Düzenle: aynı ad var mı",
@@ -915,7 +915,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "2cf95302-f749-471b-9f42-1c8a83fdee55"
+      "id": "63cfd858-6552-424b-9f10-578b4ec6f3a0"
     },
     {
       "name": "Düzenle: ad başka derste mi?",
@@ -934,7 +934,7 @@
           },
           "conditions": [
             {
-              "id": "caa12928-454b-4dcd-a6ba-c8ccc6bbd3a5",
+              "id": "0b97f10c-d83e-4fe2-8010-f9d10d49b058",
               "leftValue": "={{ !!$json.id }}",
               "rightValue": "",
               "operator": {
@@ -948,7 +948,7 @@
         },
         "options": {}
       },
-      "id": "feadb77e-d876-4cf7-8feb-76e8a481f394"
+      "id": "352ef275-d768-4333-b1b4-334fa240c0b6"
     },
     {
       "name": "409 Düzenle: ad kullanımda",
@@ -973,7 +973,7 @@
           }
         }
       },
-      "id": "63a1a225-cc58-41b7-9c65-52f2e4edb83e"
+      "id": "891ce6c5-194e-4ec3-bd30-c22504e9762e"
     },
     {
       "name": "Düzenle: belge",
@@ -986,7 +986,7 @@
       "parameters": {
         "jsCode": "// Güncellenecek alanlar ve istemci yanıtı\nconst v = $('Düzenle: doğrula').first().json;\nreturn [{ json: { id: v.course_id, name: v.name, response: { ok: true, data: { course: { id: v.course_id, name: v.name } } } } }];\n"
       },
-      "id": "9e8056a4-4384-46d7-8ba5-f897984beb7b"
+      "id": "19c6c7e4-b2fe-4538-a917-1651a4a05594"
     },
     {
       "name": "Düzenle: kaydet",
@@ -1013,7 +1013,7 @@
         }
       },
       "executeOnce": true,
-      "id": "a284b121-133e-4ac2-9267-4af403045c11"
+      "id": "8750e6ac-b536-4455-8599-9f3d85b6dd1f"
     },
     {
       "name": "200 Ders güncellendi",
@@ -1038,7 +1038,7 @@
           }
         }
       },
-      "id": "b2d883f5-b26d-428d-baf7-8ddf2ad4b587"
+      "id": "2e62159b-5b7b-4ea8-a3b2-dcdb9e83eeda"
     },
     {
       "name": "POST /courses/delete",
@@ -1048,14 +1048,14 @@
         0,
         1440
       ],
-      "webhookId": "045d9f91-92c1-4ec6-ba34-d1844269f5d8",
+      "webhookId": "b3b86bea-7c16-4884-bbd6-4ece8d0a230a",
       "parameters": {
         "httpMethod": "POST",
         "path": "courses/delete",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "c10fb3c8-e82e-4341-bbc8-69ae4df0a7e0"
+      "id": "88c85918-7d6d-4e8b-8775-b44e83c83420"
     },
     {
       "name": "Sil: token özeti",
@@ -1069,7 +1069,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /courses/delete').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "1f079ab8-f3ed-4913-b166-16761142ec44"
+      "id": "5ca526bb-29ee-4dcc-b88d-323e0be3f109"
     },
     {
       "name": "Sil: oturum",
@@ -1096,7 +1096,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "7a2a5c41-ac6d-4c71-9fee-28a3c1a37aee"
+      "id": "b137d426-48bf-4c11-8938-bd533ce5fa59"
     },
     {
       "name": "Sil: oturum geçerli mi?",
@@ -1115,7 +1115,7 @@
           },
           "conditions": [
             {
-              "id": "727e1751-4c00-494c-abb6-aac4013e2b35",
+              "id": "50ef207f-cb4b-4fda-bdd6-bf62dbafdb1f",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -1129,7 +1129,7 @@
         },
         "options": {}
       },
-      "id": "5feafcf9-93c5-46ce-8ab1-58452fe6dd09"
+      "id": "1e97fea9-929b-43ac-8014-7417508d1ea5"
     },
     {
       "name": "Sil: 401",
@@ -1154,7 +1154,7 @@
           }
         }
       },
-      "id": "a84fc805-1d81-40bc-aac6-d885ac12bda8"
+      "id": "ef34d8b3-645e-4060-a5a8-ddee13e9cca8"
     },
     {
       "name": "Sil: ders",
@@ -1181,7 +1181,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "25b1bca1-5a86-427d-8c59-324240c3c232"
+      "id": "ff03a5d9-8e44-4c71-a0fc-344f20b22698"
     },
     {
       "name": "Sil: ders var mı?",
@@ -1200,7 +1200,7 @@
           },
           "conditions": [
             {
-              "id": "924494ed-a226-46a2-8aaf-9af0fd1c9979",
+              "id": "5353b001-037a-46be-93b2-f6f9dd71e60b",
               "leftValue": "={{ !!$json.id }}",
               "rightValue": "",
               "operator": {
@@ -1214,7 +1214,7 @@
         },
         "options": {}
       },
-      "id": "52ea8157-f7d5-4f42-bb15-76e75e0b8889"
+      "id": "cfb0d348-a717-48f2-b7ec-5756dd33c5c8"
     },
     {
       "name": "404 Sil: ders yok",
@@ -1239,7 +1239,7 @@
           }
         }
       },
-      "id": "dfe749b6-fb8c-4611-b88b-fea15bc8fa86"
+      "id": "0af321da-5744-4e00-ac1e-d5166d348cfe"
     },
     {
       "name": "Sil: sohbetler",
@@ -1266,7 +1266,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "459a92b7-fc9b-416a-9055-a552a3f4f074"
+      "id": "a2937afc-834d-4662-b99a-493c81d0676b"
     },
     {
       "name": "Sil: plan",
@@ -1279,7 +1279,7 @@
       "parameters": {
         "jsCode": "// Silinecek dersin sohbet kimliklerini toplar (mesajlar sohbet üzerinden silinir).\nconst course = $('Sil: ders').first().json;\nconst conversation_ids = $('Sil: sohbetler').all().map((i) => i.json.id).filter(Boolean);\nreturn [{ json: { course_id: course.id, user_id: course.user_id, name: course.name, conversation_ids } }];\n"
       },
-      "id": "d654ce94-e92b-43c5-962a-4e9276848078"
+      "id": "53264f6e-4fa9-405e-8148-a881e9348259"
     },
     {
       "name": "Sil: messages",
@@ -1303,7 +1303,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "3fa08424-342a-4b8b-8861-aaa6af1dc1cc"
+      "id": "d7737973-ac20-4bfa-99e7-000a4b6c63f7"
     },
     {
       "name": "Sil: conversations",
@@ -1327,7 +1327,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "cac47483-9ee7-4b0e-a95a-58d2aca067eb"
+      "id": "13f3f867-b73d-4dd5-bd22-7bdca1838916"
     },
     {
       "name": "Sil: quiz_attempts",
@@ -1351,7 +1351,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "208c9cbc-2fb3-4b56-b510-1f0e89216da6"
+      "id": "7c4abccd-289a-483a-b612-a3bc05118464"
     },
     {
       "name": "Sil: quizzes",
@@ -1375,7 +1375,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "c65f6a59-bfc8-422c-bc5f-ac4b8bbae863"
+      "id": "93b6aeba-0ed9-4e99-9938-e237f83656e0"
     },
     {
       "name": "Sil: notes",
@@ -1399,7 +1399,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "ba6f5d39-828c-485b-a94b-8f08df644791"
+      "id": "df76a2ef-007a-4256-997a-ab8c9a62f897"
     },
     {
       "name": "Sil: courses",
@@ -1423,7 +1423,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "bf67540a-6670-44e2-8a38-5906bc56be51"
+      "id": "afe94850-22d8-43d7-b169-48be8b60fd70"
     },
     {
       "name": "200 Ders silindi",
@@ -1448,7 +1448,7 @@
           }
         }
       },
-      "id": "81041cf3-d3a5-4c52-8ad5-faaa731b5e8c"
+      "id": "b5f075b1-3475-4c27-825d-f7520f6d3c6f"
     }
   ],
   "connections": {

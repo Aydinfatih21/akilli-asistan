@@ -14,7 +14,7 @@
         "width": 900,
         "height": 220
       },
-      "id": "bfa63385-ad13-4ca9-9cc8-de770008511b"
+      "id": "8787bae6-6dc3-41b9-b238-c590595840d9"
     },
     {
       "name": "500 Sunucu hatası",
@@ -39,7 +39,7 @@
           }
         }
       },
-      "id": "2bcfba6b-4688-4619-b6c0-97b0654d81cb"
+      "id": "3fbf2295-728d-4b41-80a9-d6b2ba86f6ab"
     },
     {
       "name": "POST /chat/send",
@@ -49,14 +49,14 @@
         0,
         0
       ],
-      "webhookId": "96944301-36e6-4f8d-a8fa-439b96a60b45",
+      "webhookId": "75a80f47-0f16-479f-bb81-51947a420735",
       "parameters": {
         "httpMethod": "POST",
         "path": "chat/send",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "73e83b4c-2c96-45f6-b1ec-02951cf31d52"
+      "id": "b21f82a7-da97-4e87-b6da-c2f2bde1f36a"
     },
     {
       "name": "Soru: token özeti",
@@ -70,7 +70,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /chat/send').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "25063ddc-d9f5-4660-a7dc-7b8d696d5d3b"
+      "id": "14b9d8ab-b461-4228-8889-72b54ede08d1"
     },
     {
       "name": "Soru: oturum",
@@ -97,7 +97,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "c6cdc9dc-1c37-45e3-a7a9-6a6dcafd41da"
+      "id": "1f9603f1-df5f-45c0-a5ed-3ad71f52e94d"
     },
     {
       "name": "Soru: oturum geçerli mi?",
@@ -116,7 +116,7 @@
           },
           "conditions": [
             {
-              "id": "fa37ab50-6572-404f-8b06-662b60747fa8",
+              "id": "5bf771bb-9808-48bf-9f54-29dea97ef4c6",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -130,7 +130,7 @@
         },
         "options": {}
       },
-      "id": "da26eb64-c98b-4054-8cfa-30336bbf0f69"
+      "id": "eef189ca-8209-4a36-8866-d745ce7b3b77"
     },
     {
       "name": "Soru: 401",
@@ -155,7 +155,7 @@
           }
         }
       },
-      "id": "2d7cf045-2ff9-4b2e-951f-fdd50064df00"
+      "id": "2545d83e-e070-4b8f-b7c7-bcd125401594"
     },
     {
       "name": "Soru: doğrula",
@@ -169,7 +169,7 @@
         "jsCode": "// Soru isteğini doğrular.\nconst b = $('POST /chat/send').first().json.body || {};\nconst user_id = $('Soru: oturum').first().json.user_id;\nconst s = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst message = s(b.message);\nif (!message || message.length > 4000) {\n  return [{ json: { valid: false, response: { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Mesaj 1-4000 karakter arasında olmalıdır.' } } } }];\n}\nreturn [{\n  json: {\n    valid: true,\n    user_id,\n    message,\n    conversation_id: s(b.conversation_id) || null,\n    course_id: s(b.course_id) || null,\n    model: s(b.model) || null,\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "786b680a-d8a8-4223-87f5-45d527207f21"
+      "id": "533c9896-f204-4a93-b6d5-605685b12597"
     },
     {
       "name": "Soru: mesaj geçerli mi?",
@@ -188,7 +188,7 @@
           },
           "conditions": [
             {
-              "id": "58121138-9571-447d-b896-8f288c7f9e25",
+              "id": "b8543c4c-b8f5-490a-b0be-236ea6aef1ef",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -202,7 +202,7 @@
         },
         "options": {}
       },
-      "id": "f411e607-ce93-452b-b561-efc8c5cc42a8"
+      "id": "46a70622-cf47-4ce3-8975-fb393a483b8e"
     },
     {
       "name": "400 Geçersiz mesaj",
@@ -227,7 +227,7 @@
           }
         }
       },
-      "id": "963e0ff9-8b7a-4f66-8dc9-56b582961c96"
+      "id": "3949116b-2462-4f2c-a611-9f0b55be8dea"
     },
     {
       "name": "Soru: sohbet bul",
@@ -254,7 +254,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "6a1ff183-fbf8-4d91-b6e6-c273a9002034"
+      "id": "e841837b-9274-486f-956f-9b3a06330d10"
     },
     {
       "name": "Soru: ders bul",
@@ -282,7 +282,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "af1ccefd-ea79-425e-9b9d-bc17d0d2a32c"
+      "id": "ab2d8af2-ba61-471e-af53-c78c9b8043b1"
     },
     {
       "name": "Soru: notlar",
@@ -311,7 +311,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "27d5621f-b898-40c8-9f6b-c5383d306bf0"
+      "id": "ff020de6-0d16-4fca-8786-93a2f013e9d4"
     },
     {
       "name": "Soru: geçmiş",
@@ -340,7 +340,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "0693657b-c4f7-4cd7-a4c7-61fdda1804ab"
+      "id": "fbdddf06-8bcf-456c-8c75-59454072e23c"
     },
     {
       "name": "Soru: hazırla",
@@ -351,10 +351,10 @@
         -140
       ],
       "parameters": {
-        "jsCode": "// Sohbeti çözer (var olan / yeni), modele gidecek mesajları ve kaydedilecek belgeleri hazırlar.\nconst crypto = require('crypto');\nconst v = $('Soru: doğrula').first().json;\nconst conv = $('Soru: sohbet bul').first().json || {};\nconst course = $('Soru: ders bul').first().json || {};\nconst notes = $('Soru: notlar').all().map((i) => i.json).filter((d) => d && d.id);\nconst history = $('Soru: geçmiş').all().map((i) => i.json).filter((d) => d && d.id)\n  .sort((a, b) => a.seq - b.seq);\n\nconst notFound = (message) => [{ json: { valid: false, response: { ok: false, error: { code: 'NOT_FOUND', message } } } }];\nif (v.conversation_id && !conv.id) return notFound('Sohbet bulunamadı.');\nif (!v.conversation_id && v.course_id && !course.id) return notFound('Ders bulunamadı.');\n\nconst isNew = !conv.id;\nconst courseId = isNew ? (course.id || null) : (conv.course_id || null);\nconst courseName = courseId && course.id === courseId ? course.name : null;\n\n// Ders notları bağlamı: özet varsa özet, yoksa not metni; en fazla 6000 karakter\nconst noteText = (n) => (n.summary && n.summary.short)\n  ? [n.summary.short, ...(n.summary.key_points || []).map((p) => '- ' + p)].join('\\n')\n  : n.content;\nconst notesContext = notes.map((n) => `### ${n.title}\\n${noteText(n)}`).join('\\n\\n').slice(0, 6000);\n\nlet system = [\n  'Sen üniversite öğrencilerine ders çalışmada yardım eden bir yapay zekâ asistanısın.',\n  'KURALLAR:',\n  '1. Yanıtını YALNIZCA Türkçe yaz. Çince, Japonca, Korece veya Kiril alfabesinden tek bir karakter bile kullanma.',\n  '2. Açık, doğru ve öğretici ol; gerekiyorsa kısa bir örnek ver.',\n  '3. Emin olmadığın bilgiyi uydurma; bilmiyorsan bunu açıkça söyle.',\n  '4. Yanıtın en fazla 250 kelime olsun.',\n  '5. Terimleri ders ve akademik anlamıyla yorumla (ör. \"zincir kuralı\" türevde bir kuraldır); soru belirsizse en olası akademik anlamı seç.',\n].join('\\n');\nif (notesContext) {\n  system += `\\n\\nAşağıda öğrencinin \"${courseName}\" dersine ait notları var. ` +\n    'Soruyu öncelikle bu notlara dayanarak yanıtla. Notlarda olmayan bir bilgi verirsen bunun ' +\n    `genel bilgi olduğunu belirt.\\n\\n<notlar>\\n${notesContext}\\n</notlar>`;\n}\n\n// Otomatik model seçimi (kullanıcı elle seçmediyse):\n// matematik / kod / sayısal sorular → akıl yürütmesi güçlü model (qwen2.5:7b),\n// Türkçe anlatım → Türkçesi doğal model (gemma3:4b). Model adları .env'den gelir.\nconst REASONING_WORDS = ['türev', 'integral', 'limit', 'denklem', 'hesapla', 'matris', 'olasılık', 'fonksiyon',\n  'ispat', 'formül', 'matematik', 'geometri', 'fizik', 'kimya', 'istatistik', 'algoritma', 'python', 'java',\n  'dart', 'sql', 'kod', 'program'];\nconst haystack = `${v.message} ${courseName || ''}`.toLocaleLowerCase('tr');\nconst mathLike = /\\d\\s*[-+*/^=×÷]\\s*[\\d(a-z]|[a-z]\\s*\\^\\s*\\d|f\\(x\\)|√|∫|```/i.test(v.message);\nconst hit = REASONING_WORDS.find((w) => haystack.includes(w));\nconst route = mathLike || hit ? 'reasoning' : 'text';\nconst route_reason = v.model\n  ? 'elle seçildi'\n  : route === 'reasoning' ? (mathLike ? 'matematiksel ifade' : `${hit} konusu`) : 'Türkçe anlatım';\n\nconst textModel = $env.LLM_MODEL || 'gemma3:4b';\nconst reasoningModel = $env.LLM_MODEL_REASONING || textModel;\nconst primary = v.model || (route === 'reasoning' ? reasoningModel : textModel);\n\nconst now = Date.now();\nconst nowIso = new Date(now).toISOString();\nconst conversation = isNew\n  ? { id: crypto.randomUUID(), user_id: v.user_id, course_id: courseId,\n      title: v.message.replace(/\\s+/g, ' ').slice(0, 60), created_at: nowIso, updated_at: nowIso }\n  : { id: conv.id, updated_at: nowIso };\n\nreturn [{\n  json: {\n    valid: true,\n    is_new: isNew,\n    conversation,\n    user_message: { id: crypto.randomUUID(), conversation_id: conversation.id, user_id: v.user_id,\n      role: 'user', content: v.message, model: null, seq: now, created_at: nowIso },\n    model: v.model, // null ise otomatik: route'a göre LLM_MODEL veya LLM_MODEL_REASONING\n    route,\n    route_reason,\n    // 1. ve 2. deneme birincil modelle; 3. deneme diğer modelle (yedek) yapılır\n    primary_model: primary,\n    fallback_model: primary === textModel ? reasoningModel : textModel,\n    messages: [\n      { role: 'system', content: system },\n      ...history.map((m) => ({ role: m.role, content: m.content })),\n      { role: 'user', content: v.message },\n    ],\n  },\n}];\n"
+        "jsCode": "// Sohbeti çözer (var olan / yeni), modele gidecek mesajları ve kaydedilecek belgeleri hazırlar.\nconst crypto = require('crypto');\nconst v = $('Soru: doğrula').first().json;\nconst conv = $('Soru: sohbet bul').first().json || {};\nconst course = $('Soru: ders bul').first().json || {};\nconst notes = $('Soru: notlar').all().map((i) => i.json).filter((d) => d && d.id);\nconst history = $('Soru: geçmiş').all().map((i) => i.json).filter((d) => d && d.id)\n  .sort((a, b) => a.seq - b.seq);\n\nconst notFound = (message) => [{ json: { valid: false, response: { ok: false, error: { code: 'NOT_FOUND', message } } } }];\nif (v.conversation_id && !conv.id) return notFound('Sohbet bulunamadı.');\nif (!v.conversation_id && v.course_id && !course.id) return notFound('Ders bulunamadı.');\n\nconst isNew = !conv.id;\nconst courseId = isNew ? (course.id || null) : (conv.course_id || null);\nconst courseName = courseId && course.id === courseId ? course.name : null;\n\n// Ders notları bağlamı: özet varsa özet, yoksa not metni; en fazla 6000 karakter\nconst noteText = (n) => (n.summary && n.summary.short)\n  ? [n.summary.short, ...(n.summary.key_points || []).map((p) => '- ' + p)].join('\\n')\n  : n.content;\nconst notesContext = notes.map((n) => `### ${n.title}\\n${noteText(n)}`).join('\\n\\n').slice(0, 6000);\n\nlet system = [\n  'Sen üniversite öğrencilerine ders çalışmada yardım eden bir yapay zekâ asistanısın.',\n  'KURALLAR:',\n  '1. Yanıtını YALNIZCA Türkçe yaz. Çince, Japonca, Korece veya Kiril alfabesinden tek bir karakter bile kullanma.',\n  '2. Açık, doğru ve öğretici ol; gerekiyorsa kısa bir örnek ver.',\n  '3. Emin olmadığın bilgiyi uydurma; bilmiyorsan bunu açıkça söyle.',\n  '4. Yanıtın en fazla 250 kelime olsun.',\n  '5. Terimleri ders ve akademik anlamıyla yorumla (ör. \"zincir kuralı\" türevde bir kuraldır); soru belirsizse en olası akademik anlamı seç.',\n  '6. Matematiksel ifadeleri LaTeX kullanmadan düz metinle yaz (ör. f\\'(x) = 3x^2, lim (h→0), (a + b)/c). \\\\frac, \\\\[ gibi komutlar kullanma.',\n].join('\\n');\nif (notesContext) {\n  system += `\\n\\nAşağıda öğrencinin \"${courseName}\" dersine ait notları var. ` +\n    'Soruyu öncelikle bu notlara dayanarak yanıtla. Notlarda olmayan bir bilgi verirsen bunun ' +\n    `genel bilgi olduğunu belirt.\\n\\n<notlar>\\n${notesContext}\\n</notlar>`;\n}\n\n// Otomatik model seçimi (kullanıcı elle seçmediyse):\n// matematik / kod / sayısal sorular → akıl yürütmesi güçlü model (qwen2.5:7b),\n// Türkçe anlatım → Türkçesi doğal model (gemma3:4b). Model adları .env'den gelir.\nconst REASONING_WORDS = ['türev', 'integral', 'limit', 'denklem', 'hesapla', 'matris', 'olasılık', 'fonksiyon',\n  'ispat', 'formül', 'matematik', 'geometri', 'fizik', 'kimya', 'istatistik', 'algoritma', 'python', 'java',\n  'dart', 'sql', 'kod', 'program'];\nconst haystack = `${v.message} ${courseName || ''}`.toLocaleLowerCase('tr');\nconst mathLike = /\\d\\s*[-+*/^=×÷]\\s*[\\d(a-z]|[a-z]\\s*\\^\\s*\\d|f\\(x\\)|√|∫|```/i.test(v.message);\nconst hit = REASONING_WORDS.find((w) => haystack.includes(w));\nconst route = mathLike || hit ? 'reasoning' : 'text';\nconst route_reason = v.model\n  ? 'elle seçildi'\n  : route === 'reasoning' ? (mathLike ? 'matematiksel ifade' : `${hit} konusu`) : 'Türkçe anlatım';\n\nconst textModel = $env.LLM_MODEL || 'gemma3:4b';\nconst reasoningModel = $env.LLM_MODEL_REASONING || textModel;\nconst primary = v.model || (route === 'reasoning' ? reasoningModel : textModel);\n\nconst now = Date.now();\nconst nowIso = new Date(now).toISOString();\nconst conversation = isNew\n  ? { id: crypto.randomUUID(), user_id: v.user_id, course_id: courseId,\n      title: v.message.replace(/\\s+/g, ' ').slice(0, 60), created_at: nowIso, updated_at: nowIso }\n  : { id: conv.id, updated_at: nowIso };\n\nreturn [{\n  json: {\n    valid: true,\n    is_new: isNew,\n    conversation,\n    user_message: { id: crypto.randomUUID(), conversation_id: conversation.id, user_id: v.user_id,\n      role: 'user', content: v.message, model: null, seq: now, created_at: nowIso },\n    model: v.model, // null ise otomatik: route'a göre LLM_MODEL veya LLM_MODEL_REASONING\n    route,\n    route_reason,\n    // 1. ve 2. deneme birincil modelle; 3. deneme diğer modelle (yedek) yapılır\n    primary_model: primary,\n    fallback_model: primary === textModel ? reasoningModel : textModel,\n    messages: [\n      { role: 'system', content: system },\n      ...history.map((m) => ({ role: m.role, content: m.content })),\n      // Dil hatırlatması son mesaja eklenir (küçük modeller sistem mesajındaki dil kuralını uzun yanıtta unutabiliyor).\n      // Veritabanına kullanıcının yazdığı metin olduğu gibi kaydedilir.\n      { role: 'user', content: `${v.message}\\n\\n(Yanıtını yalnızca Türkçe yaz; Çince veya başka bir alfabe kullanma.)` },\n    ],\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "d80dc757-5401-40fe-8550-db73f06380f4"
+      "id": "a37c4757-aaed-490c-9cb9-30532e44c131"
     },
     {
       "name": "Soru: sohbet/ders bulundu mu?",
@@ -373,7 +373,7 @@
           },
           "conditions": [
             {
-              "id": "cbc08c66-4f21-44fc-bf71-7f27559798d1",
+              "id": "b084f5ac-3a9b-4cb2-bb30-97500770013a",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -387,7 +387,7 @@
         },
         "options": {}
       },
-      "id": "932728a9-bc6b-4ffd-abfb-1da68b25c1bd"
+      "id": "3a080cea-e85c-4664-b72f-01996ae541aa"
     },
     {
       "name": "404 Sohbet/ders yok",
@@ -412,7 +412,7 @@
           }
         }
       },
-      "id": "f47854eb-7427-4348-bd47-005b986399ba"
+      "id": "7d29526f-d207-4038-95d9-2535d879d291"
     },
     {
       "name": "Ollama /api/chat",
@@ -428,12 +428,12 @@
         "url": "={{ $env.OLLAMA_URL }}/api/chat",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: $runIndex >= 2 ? $('Soru: hazırla').first().json.fallback_model : $('Soru: hazırla').first().json.primary_model, messages: $('Soru: hazırla').first().json.messages, stream: false, options: { temperature: 0.3, num_ctx: 8192 } }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: ($runIndex >= 2 || ($runIndex === 1 && $('Yanıtı doğrula').last().json.problem === 'Türkçe dışı karakter')) ? $('Soru: hazırla').first().json.fallback_model : $('Soru: hazırla').first().json.primary_model, messages: $('Soru: hazırla').first().json.messages, stream: false, options: { temperature: 0.3, num_ctx: 8192 } }) }}",
         "options": {
           "timeout": 120000
         }
       },
-      "id": "675cbfd8-b165-4888-b574-ed015c64869c"
+      "id": "3d00cc65-4050-4cbb-aa43-9558922637a5"
     },
     {
       "name": "503 Yapay zekâ erişilemez",
@@ -458,7 +458,7 @@
           }
         }
       },
-      "id": "534718c3-6042-49d3-a1d8-2ed07d5380ac"
+      "id": "8c60e9f5-2753-4f74-a622-02b6dad04191"
     },
     {
       "name": "Yanıtı doğrula",
@@ -469,9 +469,9 @@
         -220
       ],
       "parameters": {
-        "jsCode": "// Ollama yanıtını doğrular. $runIndex: bu düğümün bu çalıştırmadaki kaçıncı turu (0'dan başlar).\nconst r = $input.first().json;\nlet content = (r.message && typeof r.message.content === 'string') ? r.message.content.trim() : '';\n// Çince/Japonca/Korece ve Kiril karakterleri\nconst foreign = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯Ѐ-ӿ]/;\nconst foreignAll = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯Ѐ-ӿ]/g;\n// Uzun bir yanıtta yalnızca birkaç yabancı karakter kaçmışsa (ör. tek bir Çince kelime) yanıt\n// çöpe atılmaz; o karakterler silinir. Yoğunsa yanıt reddedilir ve yeniden üretilir.\nlet cleaned = 0;\nconst n = (content.match(foreignAll) || []).length;\nif (n > 0 && n <= 6 && content.length >= 80) {\n  content = content.replace(foreignAll, '').replace(/[ \\t]{2,}/g, ' ').trim();\n  cleaned = n;\n}\n\nlet problem = null;\nif (!content) problem = 'boş yanıt';\nelse if (foreign.test(content)) problem = 'Türkçe dışı karakter';\n\nreturn [{\n  json: { valid: problem === null, problem, attempt: $runIndex + 1, content, model: r.model || null, cleaned },\n}];\n"
+        "jsCode": "// Ollama yanıtını doğrular. $runIndex: bu düğümün bu çalıştırmadaki kaçıncı turu (0'dan başlar).\nconst r = $input.first().json;\nlet content = (r.message && typeof r.message.content === 'string') ? r.message.content.trim() : '';\n// Çince/Japonca/Korece ve Kiril karakterleri\nconst foreign = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯Ѐ-ӿ]/;\nconst foreignAll = /[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯Ѐ-ӿ]/g;\n// Uzun bir yanıtta yalnızca birkaç yabancı karakter kaçmışsa (ör. tek bir Çince kelime) yanıt\n// çöpe atılmaz; o karakterler silinir. Yoğunsa yanıt reddedilir ve yeniden üretilir.\n// Modeller bazen LaTeX yazar; uygulama LaTeX göstermediği için düz metne çevrilir.\nconst unlatex = (t) => {\n  let s = t.replace(/\\\\\\[|\\\\\\]|\\\\\\(|\\\\\\)/g, '');\n  for (let k = 0; k < 3; k++) s = s.replace(/\\\\frac\\{([^{}]*)\\}\\{([^{}]*)\\}/g, '($1)/($2)');\n  return s\n    .replace(/\\\\sqrt\\{([^{}]*)\\}/g, '√($1)')\n    .replace(/\\\\lim_\\{([^{}]*)\\}/g, 'lim ($1)')\n    .replace(/\\\\text\\{([^{}]*)\\}/g, '$1')\n    .replace(/\\\\(left|right)\\b/g, '')\n    .replace(/\\\\(cdot|times)\\b/g, (m, c) => (c === 'cdot' ? '·' : '×'))\n    .replace(/\\\\to\\b/g, '→').replace(/\\\\infty\\b/g, '∞').replace(/\\\\pi\\b/g, 'π')\n    .replace(/\\\\(leq|le)\\b/g, '≤').replace(/\\\\(geq|ge)\\b/g, '≥').replace(/\\\\neq\\b/g, '≠')\n    .replace(/\\\\(quad|qquad|,|;|!)/g, ' ')\n    .replace(/\\\\(sin|cos|tan|ln|log)\\b/g, '$1')\n    .replace(/[ \\t]{2,}/g, ' ');\n};\nif (/\\\\[a-zA-Z\\[\\(]/.test(content)) content = unlatex(content);\nlet cleaned = 0;\nconst n = (content.match(foreignAll) || []).length;\nif (n > 0 && n <= 6 && content.length >= 80) {\n  content = content.replace(foreignAll, '').replace(/[ \\t]{2,}/g, ' ').trim();\n  cleaned = n;\n}\n\nlet problem = null;\nif (!content) problem = 'boş yanıt';\nelse if (foreign.test(content)) problem = 'Türkçe dışı karakter';\n\nreturn [{\n  json: { valid: problem === null, problem, attempt: $runIndex + 1, content, model: r.model || null, cleaned },\n}];\n"
       },
-      "id": "d314d4e6-afa5-4efa-96b7-5699c61f6f83"
+      "id": "e56960c7-ba66-4831-b94c-62e0f0fe8152"
     },
     {
       "name": "Yanıt geçerli mi?",
@@ -490,7 +490,7 @@
           },
           "conditions": [
             {
-              "id": "f87e22fe-98e9-4484-8c48-15ad84f4c3b5",
+              "id": "a08c311d-6a3d-4bb7-9563-dde735140c60",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -504,7 +504,7 @@
         },
         "options": {}
       },
-      "id": "92d83669-2220-48b9-83fc-535fe783af14"
+      "id": "c7f7913b-4cd9-4f42-a75e-6789e686a140"
     },
     {
       "name": "Tekrar denensin mi?",
@@ -523,7 +523,7 @@
           },
           "conditions": [
             {
-              "id": "953b7299-f8f4-437d-96d0-bd3ec2ced494",
+              "id": "b0189a1f-4043-4ac8-96ee-8cf143fb316e",
               "leftValue": "={{ $json.attempt }}",
               "rightValue": 3,
               "operator": {
@@ -536,7 +536,7 @@
         },
         "options": {}
       },
-      "id": "9d712216-efe9-4fc5-b649-f7c566584d61"
+      "id": "f34b3b27-21b1-4141-97a4-9cf2516fe4e0"
     },
     {
       "name": "502 Geçersiz model yanıtı",
@@ -561,7 +561,7 @@
           }
         }
       },
-      "id": "17b4f993-81d1-4d34-8b73-459a4c710c6a"
+      "id": "2197f883-d717-4593-ad3c-d1e2775752ec"
     },
     {
       "name": "Soru: sohbet belgesi",
@@ -574,7 +574,7 @@
       "parameters": {
         "jsCode": "// Kaydedilecek sohbet belgesi + doğrulanmış model yanıtı (sonraki düğüm için)\nconst p = $('Soru: hazırla').first().json;\nconst r = $input.first().json; // \"Yanıtı doğrula\" çıktısı\nreturn [{ json: { ...p.conversation, _reply: { content: r.content, model: r.model } } }];\n"
       },
-      "id": "820691fe-73fe-4460-811a-21edf8b51f77"
+      "id": "49dcacda-4e92-48b8-abb9-6ff8ac237d22"
     },
     {
       "name": "Soru: yeni sohbet mi?",
@@ -593,7 +593,7 @@
           },
           "conditions": [
             {
-              "id": "12d4ff1e-d252-4313-825d-1f6219d5a70d",
+              "id": "11690f87-55d4-402d-9157-e27a3f820984",
               "leftValue": "={{ $('Soru: hazırla').first().json.is_new }}",
               "rightValue": "",
               "operator": {
@@ -607,7 +607,7 @@
         },
         "options": {}
       },
-      "id": "f9e2366f-1e20-4cb4-ae6c-a1f953b34aa7"
+      "id": "261fe66b-4cc8-45d0-acdb-c5dec8c9dd6c"
     },
     {
       "name": "Soru: sohbet ekle",
@@ -632,7 +632,7 @@
           "dateFields": "created_at,updated_at"
         }
       },
-      "id": "e4434526-6613-4fbc-9138-29b36373dc28"
+      "id": "44e4f930-ea8c-4eeb-a4a4-1f4faf874134"
     },
     {
       "name": "Soru: sohbet güncelle",
@@ -659,7 +659,7 @@
         }
       },
       "executeOnce": true,
-      "id": "08969ea5-8a89-4c4b-8b67-b49b35f6890c"
+      "id": "3bcf4243-8350-4217-a8e7-33fffc2b8093"
     },
     {
       "name": "Soru: mesaj belgeleri",
@@ -673,7 +673,7 @@
         "jsCode": "// Kullanıcı ve asistan mesaj belgelerini (2 öğe) ve istemci yanıtını hazırlar.\nconst crypto = require('crypto');\nconst p = $('Soru: hazırla').first().json;\nconst reply = $('Soru: sohbet belgesi').first().json._reply;\nconst userMsg = p.user_message;\nconst now = Date.now();\nconst assistant = {\n  id: crypto.randomUUID(), conversation_id: p.conversation.id, user_id: userMsg.user_id,\n  role: 'assistant', content: reply.content, model: reply.model || null,\n  seq: Math.max(now, userMsg.seq + 1), created_at: new Date(now).toISOString(),\n};\nconst response = {\n  ok: true,\n  data: {\n    conversation_id: p.conversation.id,\n    reply: { id: assistant.id, role: 'assistant', content: assistant.content,\n             model: assistant.model, model_reason: (reply.model && p.primary_model && reply.model !== p.primary_model)\n               ? 'yedek model' : (p.route_reason || null), created_at: assistant.created_at },\n  },\n};\nreturn [{ json: { ...userMsg, response } }, { json: assistant }];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "84de2406-f487-49dd-9ed6-98f329e8917c"
+      "id": "53e87894-fa31-4a1f-b28f-a0915f5c3b8d"
     },
     {
       "name": "Soru: mesajları ekle",
@@ -698,7 +698,7 @@
           "dateFields": "created_at"
         }
       },
-      "id": "4b48ada7-eb21-4755-8a24-bc32b80a39a7"
+      "id": "cbd06164-aa73-47cd-8b7c-c069f2fed9d2"
     },
     {
       "name": "200 Yanıt",
@@ -723,7 +723,7 @@
           }
         }
       },
-      "id": "da771937-ff08-4d46-b16d-1d80f8e76dd9"
+      "id": "749f0aa8-59e1-4754-82da-0f4873f68897"
     },
     {
       "name": "POST /chat/conversations",
@@ -733,14 +733,14 @@
         0,
         700
       ],
-      "webhookId": "1da3a101-0f67-478d-82c3-741884a0ef1f",
+      "webhookId": "ad5a8f49-c463-4646-9469-aebfb1ae231b",
       "parameters": {
         "httpMethod": "POST",
         "path": "chat/conversations",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "c0ec30eb-e06b-4260-99e8-b5d8cbfcd60b"
+      "id": "576980f8-73d4-498b-a720-5696204da63e"
     },
     {
       "name": "Sohbetler: token özeti",
@@ -754,7 +754,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /chat/conversations').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "eaad1d95-5f19-42b6-b486-b69ef29a8d09"
+      "id": "33a59c51-8eba-466d-a1e6-1d493b98d969"
     },
     {
       "name": "Sohbetler: oturum",
@@ -781,7 +781,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "d22a4454-940d-438f-b96f-979911e88fe1"
+      "id": "98b39e31-15cc-445a-b1e6-d5ba3e86a92b"
     },
     {
       "name": "Sohbetler: oturum geçerli mi?",
@@ -800,7 +800,7 @@
           },
           "conditions": [
             {
-              "id": "b95c8798-f3c5-4141-9e7b-81e19cb72e4b",
+              "id": "88bf2109-5853-4ad0-9e0e-48285302c23b",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -814,7 +814,7 @@
         },
         "options": {}
       },
-      "id": "b2123bf6-a0a3-4a73-aa2d-5f6b7fb0a630"
+      "id": "90778256-7aaa-463f-bb4b-103c53047514"
     },
     {
       "name": "Sohbetler: 401",
@@ -839,7 +839,7 @@
           }
         }
       },
-      "id": "451882a3-7e71-4d7c-85ce-5ebb536bd698"
+      "id": "cd9116ac-3c56-4b6c-a805-330120b0eefc"
     },
     {
       "name": "Sohbetler: filtre",
@@ -852,7 +852,7 @@
       "parameters": {
         "jsCode": "// Sohbet listesi sorgusu (isteğe bağlı ders filtresi)\nconst b = $('POST /chat/conversations').first().json.body || {};\nconst user_id = $('Sohbetler: oturum').first().json.user_id;\nconst course_id = b.course_id ? String(b.course_id).trim() : '';\nreturn [{ json: { user_id, query: course_id ? { user_id, course_id } : { user_id } } }];\n"
       },
-      "id": "8cdca392-4fff-4a63-a587-5fbfa01f6f8f"
+      "id": "56149f7f-2a09-406b-bf0e-83d75435a1ba"
     },
     {
       "name": "Sohbetler: sohbetler",
@@ -880,7 +880,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "85df6255-b13d-46fe-ac22-da31c8aaa64d"
+      "id": "e2ca420a-4c5c-4398-9eb6-845ea97ad405"
     },
     {
       "name": "Sohbetler: dersler",
@@ -907,7 +907,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "9ae0ff09-e31b-4d40-b32b-fc63f308004d"
+      "id": "dad43ba0-4822-4720-9fd6-d58ffd86b6b9"
     },
     {
       "name": "Sohbetler: mesajlar",
@@ -936,7 +936,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "1c254b5b-15e1-4c2f-8b2f-dff63ce9b28b"
+      "id": "ac7167f1-5943-4865-951f-f760dbb78b01"
     },
     {
       "name": "Sohbetler: birleştir",
@@ -950,7 +950,7 @@
         "jsCode": "// Sohbetleri ders adı, mesaj sayısı ve son mesajla birleştirir.\nconst iso = (v) => (v ? new Date(v).toISOString() : null);\nconst rows = (node) => $(node).all().map((i) => i.json).filter((d) => d && d.id);\nconst courses = Object.fromEntries(rows('Sohbetler: dersler').map((c) => [c.id, c.name]));\nconst msgs = rows('Sohbetler: mesajlar');\n\nconst conversations = rows('Sohbetler: sohbetler').map((c) => {\n  const m = msgs.filter((x) => x.conversation_id === c.id).sort((a, b) => b.seq - a.seq);\n  return {\n    id: c.id,\n    title: c.title,\n    course_id: c.course_id ?? null,\n    course_name: c.course_id ? (courses[c.course_id] ?? null) : null,\n    message_count: m.length,\n    last_message: m.length ? String(m[0].content).slice(0, 120) : null,\n    updated_at: iso(c.updated_at),\n  };\n}).sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));\n\nreturn [{ json: { response: { ok: true, data: { conversations } } } }];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "f26c9181-c0bb-4a06-8c61-c3f75a820860"
+      "id": "8fbee001-adae-4b4f-976e-a7ef85f261dc"
     },
     {
       "name": "200 Sohbet listesi",
@@ -975,7 +975,7 @@
           }
         }
       },
-      "id": "62aef159-f7a2-426a-841c-cf9ada7b38df"
+      "id": "176f0bca-794c-4156-9559-de5a896cc2e4"
     },
     {
       "name": "POST /chat/history",
@@ -985,14 +985,14 @@
         0,
         1100
       ],
-      "webhookId": "8211390e-a111-4d4e-a671-b9d2aef990a1",
+      "webhookId": "9d3de519-697b-4aa5-a4a2-77cb3e5369f2",
       "parameters": {
         "httpMethod": "POST",
         "path": "chat/history",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "8e015c05-7197-4437-9664-36c4a75bf4e3"
+      "id": "4965fe57-73fe-47aa-9b44-b90ecfffded4"
     },
     {
       "name": "Geçmiş: token özeti",
@@ -1006,7 +1006,7 @@
         "jsCode": "// Authorization: Bearer <token> başlığındaki anahtarın SHA-256 özetini çıkarır.\n// Veritabanında yalnızca özet saklanır; ham anahtar sadece istemcide bulunur.\nconst crypto = require('crypto');\nconst headers = $('POST /chat/history').first().json.headers || {};\nconst raw = String(headers.authorization || '').replace(/^Bearer\\s+/i, '').trim();\nreturn [{\n  json: {\n    token_hash: raw ? crypto.createHash('sha256').update(raw).digest('hex') : '-',\n    now_ms: Date.now(),\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "2627a54f-a977-45d0-b164-a798c58b9627"
+      "id": "490b04dc-5a28-4aa1-b9be-85c766a60cd9"
     },
     {
       "name": "Geçmiş: oturum",
@@ -1033,7 +1033,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "eff6dfe1-0910-4a16-80e9-112e141d75f4"
+      "id": "f2983b1c-0f58-40da-81bd-18fc0a7575f8"
     },
     {
       "name": "Geçmiş: oturum geçerli mi?",
@@ -1052,7 +1052,7 @@
           },
           "conditions": [
             {
-              "id": "e2c86e1b-0d43-499c-8047-1b1de7da2120",
+              "id": "fe9ae505-d8d6-4c63-9877-2bf4eb12a784",
               "leftValue": "={{ !!$json.user_id }}",
               "rightValue": "",
               "operator": {
@@ -1066,7 +1066,7 @@
         },
         "options": {}
       },
-      "id": "a18f6bdf-f709-4418-8934-dddc190101c9"
+      "id": "8c42361b-f5d4-4f63-8df6-6a55be2a00dc"
     },
     {
       "name": "Geçmiş: 401",
@@ -1091,7 +1091,7 @@
           }
         }
       },
-      "id": "5000ff68-2efe-4125-87c1-50a7a0f57efe"
+      "id": "c2e80b7a-8a47-4100-bc51-09eb3f039d8e"
     },
     {
       "name": "Geçmiş: sohbet",
@@ -1118,7 +1118,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "4f3e3010-bffc-414e-ae06-54180c35d3a1"
+      "id": "0bf301ab-5b39-4439-8df2-a19f53b527c8"
     },
     {
       "name": "Geçmiş: sohbet var mı?",
@@ -1137,7 +1137,7 @@
           },
           "conditions": [
             {
-              "id": "bc3672df-4f9d-4f37-a6ba-d314ac37df78",
+              "id": "d0dafdbb-a151-403f-9d19-1bd3e9e78a6b",
               "leftValue": "={{ !!$json.id }}",
               "rightValue": "",
               "operator": {
@@ -1151,7 +1151,7 @@
         },
         "options": {}
       },
-      "id": "b8250865-c891-4c22-a823-44765103c9c5"
+      "id": "2b763a97-4f42-4b9e-bf40-d0aab38049e5"
     },
     {
       "name": "404 Sohbet yok",
@@ -1176,7 +1176,7 @@
           }
         }
       },
-      "id": "b3f40f2b-dd82-43e9-9f9c-2bdee6f9fa25"
+      "id": "d5a61e51-6c90-4eb9-9dd4-ce1666959987"
     },
     {
       "name": "Geçmiş: mesajlar",
@@ -1205,7 +1205,7 @@
       },
       "alwaysOutputData": true,
       "executeOnce": true,
-      "id": "e181801e-9388-4d32-ad84-01ae3e231c58"
+      "id": "38e3801c-8596-444b-86e0-c5662fbaf666"
     },
     {
       "name": "Geçmiş: birleştir",
@@ -1219,7 +1219,7 @@
         "jsCode": "// Bir sohbetin mesajlarını eskiden yeniye döndürür.\nconst iso = (v) => (v ? new Date(v).toISOString() : null);\nconst c = $('Geçmiş: sohbet').first().json;\nconst messages = $input.all().map((i) => i.json).filter((d) => d && d.id)\n  .sort((a, b) => a.seq - b.seq)\n  .map((m) => ({ id: m.id, role: m.role, content: m.content, model: m.model ?? null, created_at: iso(m.created_at) }));\nreturn [{\n  json: {\n    response: {\n      ok: true,\n      data: { conversation: { id: c.id, title: c.title, course_id: c.course_id ?? null }, messages },\n    },\n  },\n}];\n"
       },
       "onError": "continueErrorOutput",
-      "id": "d4811122-2908-4f79-adc7-0d0450910d6c"
+      "id": "00c7d278-3e0a-4a0c-a1f4-bf5f9458094e"
     },
     {
       "name": "200 Sohbet geçmişi",
@@ -1244,7 +1244,7 @@
           }
         }
       },
-      "id": "e1965684-73e2-49e1-a168-f3e19158a0ff"
+      "id": "a0be17b7-e1b4-490d-90c7-c54fc6ca97b8"
     }
   ],
   "connections": {

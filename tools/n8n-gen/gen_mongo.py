@@ -208,7 +208,8 @@ print("10-courses:", len(wf.nodes), "düğüm")
 # 01-chat
 # =====================================================================
 OLLAMA_BODY = ("={{ JSON.stringify({ "
-               "model: $runIndex >= 2 ? $('Soru: hazırla').first().json.fallback_model : $('Soru: hazırla').first().json.primary_model, "
+               "model: ($runIndex >= 2 || ($runIndex === 1 && $('Yanıtı doğrula').last().json.problem === 'Türkçe dışı karakter')) "
+               "? $('Soru: hazırla').first().json.fallback_model : $('Soru: hazırla').first().json.primary_model, "
                "messages: $('Soru: hazırla').first().json.messages, "
                "stream: false, "
                "options: { temperature: 0.3, num_ctx: 8192 } }) }}")

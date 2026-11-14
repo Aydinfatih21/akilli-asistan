@@ -15,7 +15,7 @@ Hedef: case dokümanındaki canlı demo senaryosunu ve projeyi diğerlerinden ay
 | Süre | Ekran | Anlatım |
 |---|---|---|
 | 0:00 | `docs/architecture.png` | "Flutter uygulaması yalnızca n8n webhook'larıyla konuşuyor; n8n verileri MongoDB'de tutuyor ve yerel Ollama modellerini çağırıyor. Her şey tek `docker compose up` ile ayağa kalkıyor." |
-| 0:25 | Terminal: `docker compose ps` + n8n arayüzünde 7 workflow | "4 zorunlu iş akışı yıldızlı; workflow'lar koddan üretiliyor ve 145 senaryoyla test ediliyor." |
+| 0:25 | Terminal: `docker compose ps` + n8n arayüzünde 7 workflow | "4 zorunlu iş akışı yıldızlı; workflow'lar koddan üretiliyor ve 149 senaryoyla test ediliyor." |
 | 0:45 | Uygulama: giriş → ana sayfa | Özet kart, dersler, istatistik simgesi |
 | 1:00 | Ders → **Not ekle** → **PDF seç** (metin kutuya dolar) → Kaydet | "PDF'in metni n8n'de çıkarılıp temizleniyor. Zorunlu 2: not özetleme." |
 | 1:15 | **Özet çıkar** → hap bilgi kartlarını çevir | "Özet JSON şemasıyla üretiliyor; Türkçe dışı karakter veya eksik alan varsa otomatik yeniden deneniyor." |

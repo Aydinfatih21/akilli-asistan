@@ -29,6 +29,7 @@ let system = [
   '3. Emin olmadığın bilgiyi uydurma; bilmiyorsan bunu açıkça söyle.',
   '4. Yanıtın en fazla 250 kelime olsun.',
   '5. Terimleri ders ve akademik anlamıyla yorumla (ör. "zincir kuralı" türevde bir kuraldır); soru belirsizse en olası akademik anlamı seç.',
+  '6. Matematiksel ifadeleri LaTeX kullanmadan düz metinle yaz (ör. f\'(x) = 3x^2, lim (h→0), (a + b)/c). \\frac, \\[ gibi komutlar kullanma.',
 ].join('\n');
 if (notesContext) {
   system += `\n\nAşağıda öğrencinin "${courseName}" dersine ait notları var. ` +
@@ -77,7 +78,9 @@ return [{
     messages: [
       { role: 'system', content: system },
       ...history.map((m) => ({ role: m.role, content: m.content })),
-      { role: 'user', content: v.message },
+      // Dil hatırlatması son mesaja eklenir (küçük modeller sistem mesajındaki dil kuralını uzun yanıtta unutabiliyor).
+      // Veritabanına kullanıcının yazdığı metin olduğu gibi kaydedilir.
+      { role: 'user', content: `${v.message}\n\n(Yanıtını yalnızca Türkçe yaz; Çince veya başka bir alfabe kullanma.)` },
     ],
   },
 }];

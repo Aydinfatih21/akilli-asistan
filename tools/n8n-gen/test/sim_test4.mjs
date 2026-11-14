@@ -110,6 +110,21 @@ r = send({ message: 'Flutter nedir?' });
 ok(ollama.requests.length === 1 && !/[一-鿿]/.test(r.content) && r.content.includes('arayüz araç setidir'), 'uzun yanıtta tek yabancı kelime silindi, yeniden deneme yok');
 ok(r.model_reason === 'Türkçe anlatım', 'birincil model nedeni korunur');
 
+ollama.requests.length = 0;
+ollama.replies.push('框架框架框架框架框架框架框架框架');  // birincil model Çinceye kaydı
+r = send({ message: 'Flutter nedir?' });
+const fm = ollama.requests.map((q) => q.body.model);
+ok(fm.join(',') === 'gemma3:4b,qwen2.5:7b' && r.model_reason === 'yedek model', `Türkçe dışı yanıttan sonra 2. deneme hemen yedek modelle (${fm})`);
+
+console.log('--- sohbette LaTeX düz metne çevrilir, dil hatırlatması');
+ollama.requests.length = 0;
+ollama.replies.push(String.raw`Türevin limit tanımı şöyledir: \[ f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h} \] Zincir kuralı: \frac{d}{dx} [f(g(x))] = f'(g(x)) \cdot g'(x) ve \text{bu} kuraldır.`);
+r = send({ message: 'Türevin limit tanımı nedir?' });
+ok(!/\\/.test(r.content) && r.content.includes("lim (h → 0) (f(x+h) - f(x))/(h)") && r.content.includes("f'(g(x)) · g'(x)"), `LaTeX düz metne çevrildi: ${r.content.slice(0, 90)}…`);
+const um = ollama.requests.at(-1).body.messages.at(-1).content;
+ok(um.startsWith('Türevin limit tanımı nedir?') && um.includes('yalnızca Türkçe'), 'son kullanıcı mesajına dil hatırlatması eklendi');
+ok(db.messages.some((m) => m.role === 'user' && m.content === 'Türevin limit tanımı nedir?'), 'veritabanına kullanıcının metni olduğu gibi kaydedildi');
+
 console.log('--- test üretimi: soru bazında eleme ve yedek model');
 const TARIH = 'İstanbul 1453 yılında Fatih Sultan Mehmet tarafından fethedildi. Bu olayla Orta Çağ sona erdi ve Yeni Çağ başladı. Osmanlı Devleti 1299 yılında kuruldu. Malazgirt Savaşı 1071 yılında yapıldı.';
 const nt = note(course(A, 'Tarih'), 'Tarih notlar', TARIH);
